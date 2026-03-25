@@ -1,0 +1,4 @@
+requests
+dnspython
+rich
+urllib3<2

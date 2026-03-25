@@ -1,0 +1,113 @@
+# === Core ===
+www
+mail
+ftp
+webmail
+smtp
+pop
+imap
+
+# === Common Services ===
+api
+api-v1
+api-v2
+graphql
+gateway
+auth
+oauth
+sso
+
+# === Admin / Panels ===
+admin
+dashboard
+panel
+control
+cpanel
+manage
+manager
+
+# === Development ===
+dev
+test
+testing
+staging
+stage
+qa
+uat
+sandbox
+beta
+
+# === Applications ===
+app
+mobile
+backend
+frontend
+service
+services
+internal
+
+# === Infrastructure ===
+cdn
+static
+assets
+img
+images
+media
+files
+download
+uploads
+
+# === Security ===
+secure
+vpn
+firewall
+proxy
+gw
+
+# === Databases ===
+db
+database
+mysql
+postgres
+mongo
+redis
+
+# === Cloud / DevOps ===
+k8s
+kubernetes
+docker
+container
+cluster
+node
+jenkins
+git
+gitlab
+github
+ci
+cd
+
+# === Regions ===
+us
+eu
+asia
+in
+uk
+dev-us
+prod-us
+
+# === E-commerce / Business ===
+shop
+store
+cart
+checkout
+payments
+billing
+orders
+
+# === Misc ===
+blog
+news
+docs
+support
+help
+status
