@@ -1,13 +1,11 @@
-# === Core ===
 www
 mail
+email
 ftp
 webmail
 smtp
 pop
 imap
-
-# === Common Services ===
 api
 api-v1
 api-v2
@@ -16,8 +14,6 @@ gateway
 auth
 oauth
 sso
-
-# === Admin / Panels ===
 admin
 dashboard
 panel
@@ -25,9 +21,8 @@ control
 cpanel
 manage
 manager
-
-# === Development ===
 dev
+development
 test
 testing
 staging
@@ -36,8 +31,15 @@ qa
 uat
 sandbox
 beta
-
-# === Applications ===
+alpha
+gammma
+delta
+zeta
+theta
+sigma
+canary
+preprod
+prod
 app
 mobile
 backend
@@ -45,8 +47,6 @@ frontend
 service
 services
 internal
-
-# === Infrastructure ===
 cdn
 static
 assets
@@ -56,55 +56,53 @@ media
 files
 download
 uploads
-
-# === Security ===
 secure
 vpn
 firewall
 proxy
 gw
-
-# === Databases ===
 db
 database
 mysql
 postgres
 mongo
 redis
-
-# === Cloud / DevOps ===
 k8s
 kubernetes
 docker
 container
 cluster
 node
+php
 jenkins
 git
 gitlab
 github
 ci
 cd
-
-# === Regions ===
+cicd
+ci-cd
+cicd-jenkins
+jenkins-ci
+jenkins-cicd
+jenkins-cd
 us
 eu
 asia
 in
 uk
 dev-us
+dev-uk
 prod-us
-
-# === E-commerce / Business ===
+prod-uk
 shop
+world
 store
 cart
 checkout
 payments
 billing
 orders
-
-# === Misc ===
 blog
 news
 docs

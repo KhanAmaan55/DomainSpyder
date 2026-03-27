@@ -4,7 +4,8 @@ from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich import box
 import warnings
-from .core import enumerate_domain
+import logging
+from .core.subdomain import enumerate_domain
 
 console = Console()
 warnings.simplefilter("ignore")
@@ -13,8 +14,8 @@ def banner():
     console.print("""
 [bold cyan]
 ╔══════════════════════════════════════╗
-║      🕷️ DomainSpyder v1.0           ║
-║   Subdomain Enumeration Toolkit     ║
+║       🕷️ DomainSpyder v1.0            ║
+║   Subdomain Enumeration Toolkit      ║
 ╚══════════════════════════════════════╝
 [/bold cyan]
 """)
@@ -37,11 +38,26 @@ def main():
     parser.add_argument(
         "--threads",
         type=int,
-        default=20,
-        help="Number of threads (default: 20)"
+        default=50,
+        help="Number of threads (default: 50)"
     )
-
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug logging"
+    )
+    
     args = parser.parse_args()
+
+    if args.debug:
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format="[%(levelname)s] %(message)s"
+        )
+    else:
+        logging.basicConfig(
+            level=logging.CRITICAL  # suppress logs
+        )
 
     banner()
     console.print(f"[green][+][/green] Target: [cyan]{args.domain}[/cyan]\n")
@@ -53,7 +69,12 @@ def main():
     ) as progress:
 
         task = progress.add_task("[yellow]Enumerating subdomains...", total=None)
-        subs = enumerate_domain(args.domain, args.wordlist, args.threads)
+        subs = enumerate_domain(
+            args.domain,
+            args.wordlist,
+            args.threads,
+            debug=args.debug
+        )
         progress.update(task, completed=1)
 
     table = Table(title="Discovered Subdomains", box=box.DOUBLE)
