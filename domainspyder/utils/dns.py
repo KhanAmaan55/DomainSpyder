@@ -3,6 +3,28 @@ import dns.resolver
 import dns.resolver
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
+import random
+import time
+
+DNS_SERVERS = [
+    "8.8.8.8",  
+    "8.8.4.4",
+    "1.1.1.1",
+    "1.0.0.1",
+    "9.9.9.9"
+]
+
+def create_resolver_pool(size=10):
+    resolvers = []
+
+    for _ in range(size):
+        resolver = dns.resolver.Resolver()
+        resolver.nameservers = [random.choice(DNS_SERVERS)]
+        resolver.timeout = 1
+        resolver.lifetime = 1
+        resolvers.append(resolver)
+
+    return resolvers
 
 def get_subdomains_crtsh(domain):
     url = f"https://crt.sh/?q=%25.{domain}&output=json"
@@ -46,10 +68,10 @@ def get_subdomains_crtsh(domain):
     return list(subdomains)
 
 
-def resolve_subdomain(subdomain):
-    resolver = dns.resolver.Resolver()
+def resolve_subdomain(subdomain, resolver):
     try:
         resolver.resolve(subdomain, "A")
+        time.sleep(0.001)
         return subdomain
     except:
         return None
@@ -66,8 +88,17 @@ def brute_force_dns(domain, wordlist_path, threads=30, debug=False):
     subdomains = [f"{word}.{domain}" for word in words]
 
     try:
+        resolvers = create_resolver_pool(size=10)
+
         with ThreadPoolExecutor(max_workers=threads) as executor:
-            futures = {executor.submit(resolve_subdomain, sub): sub for sub in subdomains}
+            futures = {
+                executor.submit(
+                    resolve_subdomain,
+                    sub,
+                    random.choice(resolvers)
+                ): sub
+                for sub in subdomains
+            }
 
             for future in as_completed(futures):
                 result = future.result()
