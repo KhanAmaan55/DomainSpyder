@@ -47,7 +47,8 @@ def handle_subdomains(args):
             args.wordlist,
             args.threads,
             debug=args.debug,
-            alive=args.alive
+            alive=args.alive,
+            brutemode=args.brutemode
         )
 
         progress.update(task, completed=1)
@@ -81,8 +82,11 @@ def handle_subdomains(args):
 
     if args.save:
         with open(args.save, "w") as f:
-            f.write("\n".join(subs))
-        console.print(f"[blue]Saved to {args.save}[/blue]")
+            if args.alive:
+                for item in subs:
+                    f.write(f"{item['subdomain']} {item['status']} {item['title']}\n")
+            else:
+                f.write("\n".join(subs))
 
 
 def main():
@@ -121,6 +125,12 @@ def main():
         "--alive",
         action="store_true",
         help="Show only alive subdomains"
+    )
+    sub_parser.add_argument(
+        "--brutemode",
+        choices=["fast", "balanced", "stealth"],
+        default="fast",
+        help="Brute force mode (default: fast)"
     )
 
     args = parser.parse_args()

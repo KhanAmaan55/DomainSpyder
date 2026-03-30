@@ -31,6 +31,7 @@ It is being built as a **multi-command CLI framework** that helps you:
 * Active enumeration:
 
   * DNS brute force (multithreaded)
+  * Configurable brute force modes for speed vs stealth
 * Deduplication & filtering
 
 ---
@@ -51,7 +52,8 @@ It is being built as a **multi-command CLI framework** that helps you:
 * Parallel passive + active enumeration
 * ThreadPool-based concurrency
 * Resolver pool with DNS rotation
-* Lightweight throttling for stability
+* Connection reuse for HTTP requests
+* Lightweight throttling for stability and reduced rate limiting
 
 ---
 
@@ -60,6 +62,7 @@ It is being built as a **multi-command CLI framework** that helps you:
 * Multi-command interface (extensible)
 * Rich tables & progress indicators
 * Debug mode for detailed logging
+* Flexible scan tuning via command options
 
 ---
 
@@ -96,6 +99,26 @@ domainspyder subdomains example.com
 ```bash
 domainspyder subdomains example.com --alive
 ```
+
+---
+
+### 🚀 Brute Force Modes
+
+Control the speed and aggressiveness of DNS brute forcing:
+
+```bash
+domainspyder subdomains example.com --brutemode fast
+domainspyder subdomains example.com --brutemode balanced
+domainspyder subdomains example.com --brutemode stealth
+```
+
+**Modes:**
+
+| Mode       | Description                                                       |
+| ---------- | ----------------------------------------------------------------- |
+| `fast`     | Maximum speed, minimal delay (best for quick scans)               |
+| `balanced` | Recommended balance between speed and reliability                 |
+| `stealth`  | Slower, reduced request rate to avoid detection and rate limiting |
 
 ---
 
@@ -193,7 +216,7 @@ GitHub: [https://github.com/KhanAmaan55](https://github.com/KhanAmaan55)
 
 ---
 
-## ⭐ Contributin
+## ⭐ Contributing
 
 Contributions, issues, and feature requests are welcome.
 
