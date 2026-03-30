@@ -3,10 +3,11 @@ from rich.console import Console
 from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich import box
+from rich.text import Text
 import warnings
 import logging
 from .core.subdomain import enumerate_domain
-
+from .core.dns import enumerate_dns, analyze_dns, calculate_dns_security
 console = Console()
 warnings.simplefilter("ignore")
 
@@ -94,6 +95,78 @@ def handle_subdomains(args):
                 f.write("\n".join(subs))
 
 
+def handle_dns(args):
+    banner()
+    console.print(f"[green][+][/green] Target: [cyan]{args.domain}[/cyan]\n")
+
+    records = enumerate_dns(args.domain, debug=args.debug)
+    insights = analyze_dns(records, args.domain, debug=args.debug)
+    security = calculate_dns_security(records, args.domain, debug=args.debug)
+
+    if not records:
+        console.print("[red]No DNS records found[/red]")
+        return
+
+    console.print("[bold magenta]🛡️ Security Summary[/bold magenta]\n")
+
+    score = security["score"]
+
+    if score >= 8:
+        color = "green"
+    elif score >= 5:
+        color = "yellow"
+    else:
+        color = "red"
+
+    text = Text("  Score: ")
+    text.append(f"{score}/10", style=f"bold {color}")
+    text.append(f" ({security['risk']})\n")
+    console.print(text)
+
+    if security["issues"]:
+        console.print("[red]  Issues:[/red]")
+        for i in security["issues"]:
+            console.print(f"    • {i}")
+
+    if security["good"]:
+        console.print("\n[green]  Good:[/green]")
+        for g in security["good"]:
+            console.print(f"    • {g}")
+
+    console.print("")
+    console.print("[bold green]══════════ 🧠 DNS INSIGHTS ══════════[/bold green]\n")
+
+    for i in insights:
+        if "⚠️" in i:
+            color = "red"
+        elif "soft fail" in i or "weaker" in i:
+            color = "yellow"
+        else:
+            color = "green"
+
+        console.print(f"[{color}]• {i}[/{color}]")
+
+    console.print("\n[bold cyan]══════════ 📊 RAW DNS RECORDS ══════════[/bold cyan]\n")
+
+    for record_type, values in records.items():
+        console.print(f"[bold cyan][{record_type} Records][/bold cyan]")
+
+        for val in sorted(values):
+            if record_type == "TXT":
+                if any(x in val for x in [
+                    "google-site-verification",
+                    "ms=",
+                    "facebook-domain-verification"
+                ]):
+                    continue
+
+            if record_type == "MX" and "google" in val:
+                val = f"{val} (Google Workspace)"
+
+            console.print(f"  • {val}")
+
+        console.print("")
+
 def main():
     parser = argparse.ArgumentParser(
         description="🕷️ DomainSpyder - Domain Intelligence Framework"
@@ -110,6 +183,11 @@ def main():
         "subdomains",
         help="Subdomain enumeration"
     )
+    dns_parser = subparsers.add_parser(
+        "dns",
+        help="DNS record enumeration"
+    )
+    dns_parser.add_argument("domain", help="Target domain")
     sub_parser.add_argument("domain", help="Target domain")
     sub_parser.add_argument(
         "--wordlist",
@@ -155,6 +233,8 @@ def main():
 
     if args.command == "subdomains":
         handle_subdomains(args)
+    elif args.command == "dns":
+        handle_dns(args)
 
 
 if __name__ == "__main__":
