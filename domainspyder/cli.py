@@ -33,6 +33,10 @@ def color_status(status):
 def handle_subdomains(args):
     banner()
     console.print(f"[green][+][/green] Target: [cyan]{args.domain}[/cyan]\n")
+    if not args.brute_only and args.brutemode != "balanced":
+        console.print("[yellow][!] brutemode is ignored without --brute-only[/yellow]\n")
+    if args.brute_only:
+        console.print(f"[blue]Brute mode:[/blue] {args.brutemode}\n")
 
     with Progress(
         SpinnerColumn(),
@@ -48,7 +52,8 @@ def handle_subdomains(args):
             args.threads,
             debug=args.debug,
             alive=args.alive,
-            brutemode=args.brutemode
+            brutemode=args.brutemode,
+            brute_only=args.brute_only
         )
 
         progress.update(task, completed=1)
@@ -127,10 +132,15 @@ def main():
         help="Show only alive subdomains"
     )
     sub_parser.add_argument(
+        "--brute-only",
+        action="store_true",
+        help="Run only brute force enumeration"
+    )
+    sub_parser.add_argument(
         "--brutemode",
         choices=["fast", "balanced", "stealth"],
-        default="fast",
-        help="Brute force mode (default: fast)"
+        default="balanced",
+        help="Brute force mode (used with --brute-only)"
     )
 
     args = parser.parse_args()

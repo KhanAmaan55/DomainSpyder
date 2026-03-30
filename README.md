@@ -31,7 +31,8 @@ It is being built as a **multi-command CLI framework** that helps you:
 * Active enumeration:
 
   * DNS brute force (multithreaded)
-  * Configurable brute force modes for speed vs stealth
+  * Configurable brute force modes (speed vs stealth)
+  * Optional brute-only mode
 * Deduplication & filtering
 
 ---
@@ -52,7 +53,7 @@ It is being built as a **multi-command CLI framework** that helps you:
 * Parallel passive + active enumeration
 * ThreadPool-based concurrency
 * Resolver pool with DNS rotation
-* Connection reuse for HTTP requests
+* Thread-local HTTP session reuse
 * Lightweight throttling for stability and reduced rate limiting
 
 ---
@@ -86,11 +87,14 @@ pip install -e .
 
 ## ▶️ Usage
 
-### 🟢 Subdomain Enumeration
+### 🟢 Subdomain Enumeration (Default)
 
 ```bash
 domainspyder subdomains example.com
 ```
+
+* Runs **passive + brute force**
+* Optimized for speed (fast mode internally)
 
 ---
 
@@ -100,29 +104,100 @@ domainspyder subdomains example.com
 domainspyder subdomains example.com --alive
 ```
 
+* Filters only live subdomains
+* Includes HTTP metadata (status, title, server)
+
 ---
 
-### 🚀 Brute Force Modes
+### 🚀 Brute Force Only Mode
 
-Control the speed and aggressiveness of DNS brute forcing:
+Run only DNS brute force with full control:
 
 ```bash
-domainspyder subdomains example.com --brutemode fast
-domainspyder subdomains example.com --brutemode balanced
-domainspyder subdomains example.com --brutemode stealth
+domainspyder subdomains example.com --brute-only
 ```
-
-**Modes:**
-
-| Mode       | Description                                                       |
-| ---------- | ----------------------------------------------------------------- |
-| `fast`     | Maximum speed, minimal delay (best for quick scans)               |
-| `balanced` | Recommended balance between speed and reliability                 |
-| `stealth`  | Slower, reduced request rate to avoid detection and rate limiting |
 
 ---
 
-### ⚙️ Common Options
+### ⚙️ Brute Force Modes (with `--brute-only`)
+
+```bash
+domainspyder subdomains example.com --brute-only --brutemode fast
+domainspyder subdomains example.com --brute-only --brutemode balanced
+domainspyder subdomains example.com --brute-only --brutemode stealth
+```
+
+> ⚠️ `--brutemode` is only applied when using `--brute-only`
+
+---
+
+## 🧠 Brute Force Modes Explained
+
+DomainSpyder provides **execution profiles** that control:
+
+* Request delay
+* Thread count
+* Scan aggressiveness
+
+| Mode       | Delay  | Threads | Description                          |
+| ---------- | ------ | ------- | ------------------------------------ |
+| `fast`     | 0.001s | 80      | Maximum speed, aggressive scanning   |
+| `balanced` | 0.005s | 50      | Recommended balance                  |
+| `stealth`  | 0.01s  | 20      | Slow, avoids detection & rate limits |
+
+---
+
+## 📊 When to Use Each Mode
+
+### ⚡ `fast` mode
+
+Use when:
+
+* Wordlist is **small (< 5,000 entries)**
+* You need **quick results**
+* Target is **not sensitive to rate limiting**
+
+**Example:**
+
+```bash
+domainspyder subdomains example.com --brute-only --brutemode fast
+```
+
+---
+
+### ⚖️ `balanced` mode (Recommended)
+
+Use when:
+
+* Wordlist is **medium (5k – 50k entries)**
+* You want **good accuracy + speed**
+* General recon / bug bounty workflows
+
+**Example:**
+
+```bash
+domainspyder subdomains example.com --brute-only --brutemode balanced
+```
+
+---
+
+### 🕵️ `stealth` mode
+
+Use when:
+
+* Wordlist is **large (50k+ entries)**
+* Target has **rate limiting / WAF**
+* You want **maximum reliability (fewer missed subdomains)**
+
+**Example:**
+
+```bash
+domainspyder subdomains example.com --brute-only --brutemode stealth
+```
+
+---
+
+## ⚙️ Common Options
 
 ```bash
 domainspyder subdomains example.com --threads 100
@@ -178,29 +253,6 @@ This makes it easy to:
 
 ---
 
-## 🔮 Roadmap
-
-### 🟢 Short Term
-
-* Improved HTTP probing (response time, redirects)
-* JSON / CSV output support
-
-### 🟡 Mid Term
-
-* DNS record enumeration (A, MX, TXT, NS)
-* Port scanning (lightweight)
-* Technology detection
-
-### 🔴 Long Term
-
-* Full scan command (`domainspyder scan`)
-* Subdomain permutation engine
-* Continuous monitoring
-* Docker support
-* PyPI release
-
----
-
 ## ⚠️ Disclaimer
 
 This tool is intended for **educational purposes and authorized security testing only**.
@@ -212,7 +264,7 @@ Do not use DomainSpyder against systems without explicit permission.
 ## 👨‍💻 Author
 
 **Amaan Khan**
-GitHub: [https://github.com/KhanAmaan55](https://github.com/KhanAmaan55)
+GitHub: https://github.com/KhanAmaan55
 
 ---
 

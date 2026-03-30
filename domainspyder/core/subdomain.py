@@ -1,3 +1,4 @@
+import time
 from domainspyder.utils.dns import (
     get_subdomains_crtsh,
     brute_force_dns,
@@ -5,12 +6,20 @@ from domainspyder.utils.dns import (
     get_subdomains_otx,
     get_subdomains_rapiddns,
     get_subdomains_wayback,
-    BRUTE_MODES
+    BRUTE_CONFIG
 )
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
 import requests
 import re
+import threading
+
+thread_local = threading.local()
+
+def get_session():
+    if not hasattr(thread_local, "session"):
+        thread_local.session = requests.Session()
+    return thread_local.session
 
 def fetch_all_sources(domain, debug=False):
     functions = [
@@ -46,24 +55,49 @@ def fetch_all_sources(domain, debug=False):
     return subs
 
 
-def enumerate_domain(domain, wordlist, threads=50, debug=False, alive=False, brutemode="fast"):
-    delay = BRUTE_MODES.get(brutemode, 0.001)
+def enumerate_domain(
+    domain,
+    wordlist,
+    threads=50,
+    debug=False,
+    alive=False,
+    brutemode="balanced",
+    brute_only=False
+):
+    if brute_only:
+        config = BRUTE_CONFIG.get(brutemode, BRUTE_CONFIG["balanced"])
+        delay = config["delay"]
+        if threads == 50:
+            threads = config["threads"]
 
-    if debug:
-        logging.debug(f"Using brute mode: {brutemode} (delay={delay})")
+        if debug:
+            logging.debug(f"[BRUTE ONLY] mode={brutemode}, delay={delay}, threads={threads}")
 
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        future_passive = executor.submit(fetch_all_sources, domain, debug)
-        future_brute = executor.submit(
-            brute_force_dns,
+        brute_subs = brute_force_dns(
             domain,
             wordlist,
             threads,
             delay,
             debug
         )
-        passive_subs = future_passive.result()
-        brute_subs = future_brute.result()
+
+        passive_subs = []
+
+    else:
+        delay = 0.001
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            future_passive = executor.submit(fetch_all_sources, domain, debug)
+            future_brute = executor.submit(
+                brute_force_dns,
+                domain,
+                wordlist,
+                threads,
+                delay,
+                debug
+            )
+            passive_subs = future_passive.result()
+            brute_subs = future_brute.result()
 
     if debug:
         logging.debug(f"passive total: {len(passive_subs)}")
@@ -88,13 +122,14 @@ def enumerate_domain(domain, wordlist, threads=50, debug=False, alive=False, bru
 
     if alive:
         def is_alive(sub):
-            session = requests.Session()
+            session = get_session()
             headers = {"User-Agent": "DomainSpyder"}
 
             urls = [f"http://{sub}", f"https://{sub}"]
 
             for url in urls:
                 try:
+                    time.sleep(0.005)
                     r = session.get(
                         url,
                         timeout=3,
@@ -115,7 +150,9 @@ def enumerate_domain(domain, wordlist, threads=50, debug=False, alive=False, bru
                         "title": title[:50]
                     }
 
-                except:
+                except Exception as e:
+                    if debug:
+                        logging.debug(f"{sub} failed: {e}")
                     continue
 
             return None
