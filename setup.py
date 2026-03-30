@@ -2,20 +2,20 @@ from setuptools import setup, find_packages
 
 setup(
     name="domainspyder",
-    version="1.0.0",
-    description="Subdomain Enumeration CLI Tool",
+    version="2.0.0",
+    description="Domain Intelligence Framework",
     author="Amaan Khan",
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
         "requests",
         "dnspython",
-        "rich"
+        "rich",
     ],
     entry_points={
         "console_scripts": [
-            "domainspyder=domainspyder.cli:main"
-        ]
+            "domainspyder=domainspyder.cli:main",
+        ],
     },
     python_requires=">=3.8",
 )
