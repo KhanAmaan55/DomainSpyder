@@ -20,6 +20,16 @@ def banner():
 [/bold cyan]
 """)
 
+def color_status(status):
+    if 200 <= status < 300:
+        return f"[green]{status}[/green]"
+    elif 300 <= status < 400:
+        return f"[cyan]{status}[/cyan]"
+    elif 400 <= status < 500:
+        return f"[yellow]{status}[/yellow]"
+    else:
+        return f"[red]{status}[/red]"
+    
 def handle_subdomains(args):
     banner()
     console.print(f"[green][+][/green] Target: [cyan]{args.domain}[/cyan]\n")
@@ -42,12 +52,29 @@ def handle_subdomains(args):
 
         progress.update(task, completed=1)
 
-    table = Table(title="Discovered Subdomains", box=box.DOUBLE)
-    table.add_column("#", style="dim")
-    table.add_column("Subdomain", style="cyan")
+    if args.alive:
+        table = Table(title="Alive Subdomains", box=box.DOUBLE)
+        table.add_column("#", style="dim")
+        table.add_column("Subdomain", style="cyan")
+        table.add_column("Status", style="green")
+        table.add_column("Server", style="magenta")
+        table.add_column("Title", style="yellow")
 
-    for i, sub in enumerate(subs, 1):
-        table.add_row(str(i), sub)
+        for i, item in enumerate(subs, 1):
+            table.add_row(
+                str(i),
+                item["subdomain"],
+                color_status(item["status"]),
+                item["server"],
+                item["title"]
+            )
+    else:
+        table = Table(title="Discovered Subdomains", box=box.DOUBLE)
+        table.add_column("#", style="dim")
+        table.add_column("Subdomain", style="cyan")
+
+        for i, sub in enumerate(subs, 1):
+            table.add_row(str(i), sub)
 
     console.print(table)
     console.print(f"\n[bold green]Total Found:[/bold green] {len(subs)}\n")
@@ -105,7 +132,7 @@ def main():
         )
     else:
         logging.basicConfig(level=logging.CRITICAL)
-        
+
     if args.command == "subdomains":
         handle_subdomains(args)
 

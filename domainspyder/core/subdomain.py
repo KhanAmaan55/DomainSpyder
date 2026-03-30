@@ -76,15 +76,34 @@ def enumerate_domain(domain, wordlist, threads=50, debug=False, alive=False):
 
     if alive:
         def is_alive(sub):
-            try:
-                r = requests.get(f"http://{sub}", timeout=3)
-                return sub if r.status_code < 500 else None
-            except:
+            urls = [f"http://{sub}", f"https://{sub}"]
+
+            for url in urls:
                 try:
-                    r = requests.get(f"https://{sub}", timeout=3)
-                    return sub if r.status_code < 500 else None
+                    r = requests.get(url, timeout=3, allow_redirects=True)
+
+                    status = r.status_code
+                    server = r.headers.get("Server", "-")
+
+                    # extract title
+                    title = "-"
+                    if "<title>" in r.text.lower():
+                        try:
+                            title = r.text.lower().split("<title>")[1].split("</title>")[0].strip()
+                        except:
+                            pass
+
+                    return {
+                        "subdomain": sub,
+                        "status": status,
+                        "server": server,
+                        "title": title[:50]
+                    }
+
                 except:
-                    return None
+                    continue
+
+            return None
 
         alive_results = []
 
@@ -99,6 +118,6 @@ def enumerate_domain(domain, wordlist, threads=50, debug=False, alive=False):
         if debug:
             logging.debug(f"alive count: {len(alive_results)}")
 
-        return sorted(alive_results)
+        return alive_results
 
     return sorted(results)
