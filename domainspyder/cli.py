@@ -21,14 +21,6 @@ def banner():
 """)
 
 def handle_subdomains(args):
-    if args.debug:
-        logging.basicConfig(
-            level=logging.DEBUG,
-            format="[%(levelname)s] %(message)s"
-        )
-    else:
-        logging.basicConfig(level=logging.CRITICAL)
-
     banner()
     console.print(f"[green][+][/green] Target: [cyan]{args.domain}[/cyan]\n")
 
@@ -70,6 +62,11 @@ def main():
     parser = argparse.ArgumentParser(
         description="🕷️ DomainSpyder - Domain Intelligence Framework"
     )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug logging globally"
+    )
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -94,18 +91,21 @@ def main():
         help="Number of threads (default: 50)"
     )
     sub_parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Enable debug logging"
-    )
-    sub_parser.add_argument(
         "--alive",
         action="store_true",
         help="Show only alive subdomains"
     )
 
     args = parser.parse_args()
-
+    
+    if args.debug:
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format="[%(levelname)s] %(message)s"
+        )
+    else:
+        logging.basicConfig(level=logging.CRITICAL)
+        
     if args.command == "subdomains":
         handle_subdomains(args)
 
