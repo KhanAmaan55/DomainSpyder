@@ -4,12 +4,13 @@ from domainspyder.utils.dns import (
     get_subdomains_hackertarget,
     get_subdomains_otx,
     get_subdomains_rapiddns,
-    get_subdomains_wayback
+    get_subdomains_wayback,
+    BRUTE_MODES
 )
-
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
 import requests
+import re
 
 def fetch_all_sources(domain, debug=False):
     functions = [
@@ -45,11 +46,22 @@ def fetch_all_sources(domain, debug=False):
     return subs
 
 
-def enumerate_domain(domain, wordlist, threads=50, debug=False, alive=False):
+def enumerate_domain(domain, wordlist, threads=50, debug=False, alive=False, brutemode="fast"):
+    delay = BRUTE_MODES.get(brutemode, 0.001)
+
+    if debug:
+        logging.debug(f"Using brute mode: {brutemode} (delay={delay})")
+
     with ThreadPoolExecutor(max_workers=2) as executor:
         future_passive = executor.submit(fetch_all_sources, domain, debug)
-        future_brute = executor.submit(brute_force_dns, domain, wordlist, threads, debug)
-
+        future_brute = executor.submit(
+            brute_force_dns,
+            domain,
+            wordlist,
+            threads,
+            delay,
+            debug
+        )
         passive_subs = future_passive.result()
         brute_subs = future_brute.result()
 
@@ -76,22 +88,25 @@ def enumerate_domain(domain, wordlist, threads=50, debug=False, alive=False):
 
     if alive:
         def is_alive(sub):
+            session = requests.Session()
+            headers = {"User-Agent": "DomainSpyder"}
+
             urls = [f"http://{sub}", f"https://{sub}"]
 
             for url in urls:
                 try:
-                    r = requests.get(url, timeout=3, allow_redirects=True)
+                    r = session.get(
+                        url,
+                        timeout=3,
+                        allow_redirects=True,
+                        headers=headers
+                    )
 
                     status = r.status_code
                     server = r.headers.get("Server", "-")
 
-                    # extract title
-                    title = "-"
-                    if "<title>" in r.text.lower():
-                        try:
-                            title = r.text.lower().split("<title>")[1].split("</title>")[0].strip()
-                        except:
-                            pass
+                    match = re.search(r"<title>(.*?)</title>", r.text, re.IGNORECASE)
+                    title = match.group(1).strip() if match else "-"
 
                     return {
                         "subdomain": sub,

@@ -14,6 +14,12 @@ DNS_SERVERS = [
     "9.9.9.9"
 ]
 
+BRUTE_MODES = {
+    "fast": 0.001,
+    "balanced": 0.005,
+    "stealth": 0.01
+}
+
 def create_resolver_pool(size=10):
     resolvers = []
 
@@ -29,12 +35,13 @@ def create_resolver_pool(size=10):
 def get_subdomains_crtsh(domain):
     url = f"https://crt.sh/?q=%25.{domain}&output=json"
     subdomains = set()
+    headers = {"User-Agent": "DomainSpyder"}
 
     try:
         response = requests.get(
             url,
             timeout=10,
-            headers={"User-Agent": "Mozilla/5.0"}
+            headers=headers
         )
 
         # DEBUG
@@ -68,23 +75,22 @@ def get_subdomains_crtsh(domain):
     return list(subdomains)
 
 
-def resolve_subdomain(subdomain, resolver):
+def resolve_subdomain(subdomain, resolver, delay):
     try:
         resolver.resolve(subdomain, "A")
-        time.sleep(0.001)
+        time.sleep(delay)
         return subdomain
     except:
         return None
 
-
-def brute_force_dns(domain, wordlist_path, threads=30, debug=False):
+def brute_force_dns(domain, wordlist_path, threads=30, delay=0.001, debug=False):
     found = []
     with open(wordlist_path) as f:
         words = [w.strip() for w in f if w.strip()]
 
     if debug:
-        logging.debug(f"brute force started with {len(words)} words")
-    
+        logging.debug(f"brute force started with {len(words)} words (delay={delay})")
+
     subdomains = [f"{word}.{domain}" for word in words]
 
     try:
@@ -95,7 +101,8 @@ def brute_force_dns(domain, wordlist_path, threads=30, debug=False):
                 executor.submit(
                     resolve_subdomain,
                     sub,
-                    random.choice(resolvers)
+                    random.choice(resolvers),
+                    delay
                 ): sub
                 for sub in subdomains
             }
@@ -115,9 +122,14 @@ def brute_force_dns(domain, wordlist_path, threads=30, debug=False):
 def get_subdomains_otx(domain):
     url = f"https://otx.alienvault.com/api/v1/indicators/domain/{domain}/passive_dns"
     subs = set()
+    headers = {"User-Agent": "DomainSpyder"}
 
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(
+            url,
+            timeout=10,
+            headers=headers
+        )
         data = response.json()
 
         for entry in data.get("passive_dns", []):
@@ -134,9 +146,14 @@ def get_subdomains_otx(domain):
 def get_subdomains_hackertarget(domain):
     url = f"https://api.hackertarget.com/hostsearch/?q={domain}"
     subs = set()
+    headers = {"User-Agent": "DomainSpyder"}
 
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(
+            url,
+            timeout=10,
+            headers=headers
+        )
         lines = response.text.splitlines()
 
         for line in lines:
@@ -153,9 +170,14 @@ def get_subdomains_hackertarget(domain):
 def get_subdomains_wayback(domain):
     url = f"http://web.archive.org/cdx/search/cdx?url=*.{domain}&output=json"
     subs = set()
+    headers = {"User-Agent": "DomainSpyder"}
 
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(
+            url,
+            timeout=10,
+            headers=headers
+        )
         data = response.json()
 
         for row in data[1:]:
@@ -175,9 +197,14 @@ import re
 def get_subdomains_rapiddns(domain):
     url = f"https://rapiddns.io/subdomain/{domain}?full=1"
     subs = set()
+    headers = {"User-Agent": "DomainSpyder"}
 
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(
+            url,
+            timeout=10,
+            headers=headers
+        )
         matches = re.findall(rf"([a-zA-Z0-9_\-\.]+\.{domain})", response.text)
 
         for sub in matches:
