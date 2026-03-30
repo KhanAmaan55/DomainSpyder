@@ -15,49 +15,19 @@ def banner():
 [bold cyan]
 ╔══════════════════════════════════════╗
 ║       🕷️ DomainSpyder v1.0            ║
-║   Subdomain Enumeration Toolkit      ║
+║     Domain Intelligence Framework    ║
 ╚══════════════════════════════════════╝
 [/bold cyan]
 """)
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="🕷️ DomainSpyder - Subdomain Enumeration Tool"
-    )
-
-    parser.add_argument("domain", help="Target domain")
-    parser.add_argument(
-        "--wordlist",
-        default="wordlists/default.txt",
-        help="Path to wordlist"
-    )
-    parser.add_argument(
-        "--save",
-        help="Save results to file"
-    )
-    parser.add_argument(
-        "--threads",
-        type=int,
-        default=50,
-        help="Number of threads (default: 50)"
-    )
-    parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Enable debug logging"
-    )
-    
-    args = parser.parse_args()
-
+def handle_subdomains(args):
     if args.debug:
         logging.basicConfig(
             level=logging.DEBUG,
             format="[%(levelname)s] %(message)s"
         )
     else:
-        logging.basicConfig(
-            level=logging.CRITICAL  # suppress logs
-        )
+        logging.basicConfig(level=logging.CRITICAL)
 
     banner()
     console.print(f"[green][+][/green] Target: [cyan]{args.domain}[/cyan]\n")
@@ -69,12 +39,15 @@ def main():
     ) as progress:
 
         task = progress.add_task("[yellow]Enumerating subdomains...", total=None)
+
         subs = enumerate_domain(
             args.domain,
             args.wordlist,
             args.threads,
-            debug=args.debug
+            debug=args.debug,
+            alive=args.alive
         )
+
         progress.update(task, completed=1)
 
     table = Table(title="Discovered Subdomains", box=box.DOUBLE)
@@ -91,3 +64,51 @@ def main():
         with open(args.save, "w") as f:
             f.write("\n".join(subs))
         console.print(f"[blue]Saved to {args.save}[/blue]")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="🕷️ DomainSpyder - Domain Intelligence Framework"
+    )
+
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    sub_parser = subparsers.add_parser(
+        "subdomains",
+        help="Subdomain enumeration"
+    )
+    sub_parser.add_argument("domain", help="Target domain")
+    sub_parser.add_argument(
+        "--wordlist",
+        default="wordlists/default.txt",
+        help="Path to wordlist"
+    )
+    sub_parser.add_argument(
+        "--save",
+        help="Save results to file"
+    )
+    sub_parser.add_argument(
+        "--threads",
+        type=int,
+        default=50,
+        help="Number of threads (default: 50)"
+    )
+    sub_parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug logging"
+    )
+    sub_parser.add_argument(
+        "--alive",
+        action="store_true",
+        help="Show only alive subdomains"
+    )
+
+    args = parser.parse_args()
+
+    if args.command == "subdomains":
+        handle_subdomains(args)
+
+
+if __name__ == "__main__":
+    main()
