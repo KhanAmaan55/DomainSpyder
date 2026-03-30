@@ -146,7 +146,7 @@ def get_subdomains_hackertarget(domain):
 
     # DEBUG
     except Exception as e:
-        print(f"[DEBUG] hackertarget error: {e}")
+        logging.error(f"hackertarget error: {e}")
 
     return list(subs)
 
@@ -166,7 +166,7 @@ def get_subdomains_wayback(domain):
 
     # DEBUG
     except Exception as e:
-        print(f"[DEBUG] wayback error: {e}")
+        logging.error(f"wayback error: {e}")
 
     return list(subs)
 
@@ -185,6 +185,6 @@ def get_subdomains_rapiddns(domain):
 
     # DEBUG
     except Exception as e:
-        print(f"[DEBUG] rapiddns error: {e}")
+        logging.error(f"rapiddns error: {e}")
 
     return list(subs)

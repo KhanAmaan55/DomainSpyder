@@ -9,6 +9,7 @@ from domainspyder.utils.dns import (
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
+import requests
 
 def fetch_all_sources(domain, debug=False):
     functions = [
@@ -44,7 +45,7 @@ def fetch_all_sources(domain, debug=False):
     return subs
 
 
-def enumerate_domain(domain, wordlist, threads=50, debug=False):
+def enumerate_domain(domain, wordlist, threads=50, debug=False, alive=False):
     with ThreadPoolExecutor(max_workers=2) as executor:
         future_passive = executor.submit(fetch_all_sources, domain, debug)
         future_brute = executor.submit(brute_force_dns, domain, wordlist, threads, debug)
@@ -72,5 +73,32 @@ def enumerate_domain(domain, wordlist, threads=50, debug=False):
 
     if debug:
         logging.debug(f"final unique: {len(results)}")
+
+    if alive:
+        def is_alive(sub):
+            try:
+                r = requests.get(f"http://{sub}", timeout=3)
+                return sub if r.status_code < 500 else None
+            except:
+                try:
+                    r = requests.get(f"https://{sub}", timeout=3)
+                    return sub if r.status_code < 500 else None
+                except:
+                    return None
+
+        alive_results = []
+
+        with ThreadPoolExecutor(max_workers=threads) as executor:
+            futures = {executor.submit(is_alive, sub): sub for sub in results}
+
+            for future in as_completed(futures):
+                res = future.result()
+                if res:
+                    alive_results.append(res)
+
+        if debug:
+            logging.debug(f"alive count: {len(alive_results)}")
+
+        return sorted(alive_results)
 
     return sorted(results)
