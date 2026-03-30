@@ -1,6 +1,5 @@
 import requests
 import dns.resolver
-import dns.resolver
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
 import random
@@ -14,11 +13,13 @@ DNS_SERVERS = [
     "9.9.9.9"
 ]
 
-BRUTE_MODES = {
-    "fast": 0.001,
-    "balanced": 0.005,
-    "stealth": 0.01
+BRUTE_CONFIG = {
+    "fast": {"delay": 0.001, "threads": 80},
+    "balanced": {"delay": 0.005, "threads": 50},
+    "stealth": {"delay": 0.01, "threads": 20}
 }
+
+HEADERS = {"User-Agent": "DomainSpyder"}
 
 def create_resolver_pool(size=10):
     resolvers = []
@@ -35,13 +36,12 @@ def create_resolver_pool(size=10):
 def get_subdomains_crtsh(domain):
     url = f"https://crt.sh/?q=%25.{domain}&output=json"
     subdomains = set()
-    headers = {"User-Agent": "DomainSpyder"}
 
     try:
         response = requests.get(
             url,
             timeout=10,
-            headers=headers
+            headers=HEADERS
         )
 
         # DEBUG
@@ -85,7 +85,7 @@ def resolve_subdomain(subdomain, resolver, delay):
 
 def brute_force_dns(domain, wordlist_path, threads=30, delay=0.001, debug=False):
     found = []
-    with open(wordlist_path) as f:
+    with open(wordlist_path, encoding="utf-8") as f:
         words = [w.strip() for w in f if w.strip()]
 
     if debug:
@@ -122,13 +122,12 @@ def brute_force_dns(domain, wordlist_path, threads=30, delay=0.001, debug=False)
 def get_subdomains_otx(domain):
     url = f"https://otx.alienvault.com/api/v1/indicators/domain/{domain}/passive_dns"
     subs = set()
-    headers = {"User-Agent": "DomainSpyder"}
 
     try:
         response = requests.get(
             url,
             timeout=10,
-            headers=headers
+            headers=HEADERS
         )
         data = response.json()
 
@@ -146,13 +145,12 @@ def get_subdomains_otx(domain):
 def get_subdomains_hackertarget(domain):
     url = f"https://api.hackertarget.com/hostsearch/?q={domain}"
     subs = set()
-    headers = {"User-Agent": "DomainSpyder"}
 
     try:
         response = requests.get(
             url,
             timeout=10,
-            headers=headers
+            headers=HEADERS
         )
         lines = response.text.splitlines()
 
@@ -170,13 +168,12 @@ def get_subdomains_hackertarget(domain):
 def get_subdomains_wayback(domain):
     url = f"http://web.archive.org/cdx/search/cdx?url=*.{domain}&output=json"
     subs = set()
-    headers = {"User-Agent": "DomainSpyder"}
 
     try:
         response = requests.get(
             url,
             timeout=10,
-            headers=headers
+            headers=HEADERS
         )
         data = response.json()
 
@@ -197,13 +194,12 @@ import re
 def get_subdomains_rapiddns(domain):
     url = f"https://rapiddns.io/subdomain/{domain}?full=1"
     subs = set()
-    headers = {"User-Agent": "DomainSpyder"}
 
     try:
         response = requests.get(
             url,
             timeout=10,
-            headers=headers
+            headers=HEADERS
         )
         matches = re.findall(rf"([a-zA-Z0-9_\-\.]+\.{domain})", response.text)
 
