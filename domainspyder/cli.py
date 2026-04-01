@@ -93,6 +93,11 @@ def _build_parser() -> argparse.ArgumentParser:
     # ---- dns command -------------------------------------------------
     dns_cmd = subparsers.add_parser("dns", help="DNS record enumeration")
     dns_cmd.add_argument("domain", help="Target domain")
+    dns_cmd.add_argument(
+        "--raw",
+        action="store_true",
+        help="Show raw DNS records without analysis",
+    )
 
     return parser
 
@@ -162,16 +167,18 @@ def _handle_dns(args: argparse.Namespace) -> None:
         progress.add_task("[cyan]Resolving DNS records...", total=None)
 
         records = scanner.scan(args.domain)
-        insights = scanner.analyze(records, args.domain)
-        security = scanner.calculate_security(records, args.domain)
+        if not args.raw:
+            insights = scanner.analyze(records, args.domain)
+            security = scanner.calculate_security(records, args.domain)
 
     if not records:
         console.print("  [red]No DNS records found.[/red]\n")
         return
 
-    print_security_score(security)
-    print_dns_insights(insights)
     print_dns_records(records)
+    if not args.raw:
+        print_dns_insights(insights)
+        print_security_score(security)
 
 
 # ------------------------------------------------------------------
