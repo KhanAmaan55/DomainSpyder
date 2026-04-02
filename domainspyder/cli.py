@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import logging
 import warnings
+from concurrent.futures import ThreadPoolExecutor
 
 from domainspyder.config import (
     APP_NAME,
@@ -94,7 +95,7 @@ def _build_parser() -> argparse.ArgumentParser:
     dns_cmd = subparsers.add_parser("dns", help="DNS record enumeration")
     dns_cmd.add_argument("domain", help="Target domain")
     dns_cmd.add_argument(
-        "--raw",
+        "--raw-only",
         action="store_true",
         help="Show raw DNS records without analysis",
     )
@@ -165,18 +166,24 @@ def _handle_dns(args: argparse.Namespace) -> None:
         transient=True,
     ) as progress:
         progress.add_task("[cyan]Resolving DNS records...", total=None)
-
         records = scanner.scan(args.domain)
-        if not args.raw:
-            insights = scanner.analyze(records, args.domain)
-            security = scanner.calculate_security(records, args.domain)
+        with ThreadPoolExecutor() as executor:
+            data = scanner.preprocess(records)
+        
+            f1 = executor.submit(scanner.analyze, records, args.domain, data)
+            f2 = executor.submit(scanner.calculate_security, records, args.domain, data)
+        
+            if not args.raw_only:
+                insights = f1.result()
+                security = f2.result()
+            
 
     if not records:
         console.print("  [red]No DNS records found.[/red]\n")
         return
 
     print_dns_records(records)
-    if not args.raw:
+    if not args.raw_only:
         print_dns_insights(insights)
         print_security_score(security)
 

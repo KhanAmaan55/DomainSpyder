@@ -9,10 +9,11 @@ from __future__ import annotations
 
 import logging
 from typing import Optional
+from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 
 import dns.resolver
-
-from domainspyder.config import DNS_SERVERS, RECORD_TYPES, PROVIDER_MAP
+from domainspyder.config import DNS_SERVERS, RECORD_TYPES
 from domainspyder.utils import normalize_provider, display_provider
 
 logger = logging.getLogger(__name__)
@@ -30,46 +31,90 @@ class DNSScanner:
         security = scanner.calculate_security(records, "example.com")
     """
 
-    def __init__(self, *, debug: bool = False) -> None:
+    def __init__(self, *, debug: bool = False, timeout=3.0, lifetime=5.0) -> None:
         self._debug = debug
+        self._dmarc_cache: dict[str, tuple[list[str], bool]] = {}
+        self._timeout = timeout
+        self._lifetime = lifetime
+        self._cache_lock = Lock()
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
+
 
     def scan(self, domain: str) -> dict[str, list[str]]:
-        """Resolve all configured record types for *domain*."""
+        """Resolve all configured record types for *domain* (parallel)."""
         output: dict[str, list[str]] = {}
 
-        for record_type in RECORD_TYPES:
+        def resolve(record_type):
             logger.debug("Resolving %s records for %s", record_type, domain)
             result = self._resolve_record(domain, record_type)
+            return record_type, result
+
+        with ThreadPoolExecutor() as executor:
+            results = executor.map(resolve, RECORD_TYPES)
+
+        for record_type, result in results:
             if result:
                 output[record_type] = result
 
         return output
 
+    def preprocess(self, records: dict[str, list[str]]) -> dict:
+        """Precompute shared data to avoid duplication."""
+        txt_records = records.get("TXT", [])
+        mx_records = records.get("MX", [])
+
+        spf_records = []
+        spf_providers = set()
+        mx_providers = set()
+
+        for txt in txt_records:
+            txt_lower = txt.lower()
+            if "v=spf1" in txt_lower:
+                spf_records.append(txt)
+
+            prov = normalize_provider(txt)
+            if prov:
+                spf_providers.add(prov)
+
+        for mx in mx_records:
+            prov = normalize_provider(mx)
+            if prov:
+                mx_providers.add(prov)
+
+        return {
+            "txt": txt_records,
+            "mx": mx_records,
+            "spf_records": spf_records,
+            "mx_providers": mx_providers,
+            "spf_providers": spf_providers,
+        }
+
     def analyze(
         self,
         records: dict[str, list[str]],
         domain: str,
+        data: Optional[dict] = None,
     ) -> list[str]:
-        """Return a sorted list of DNS insight strings for *domain*."""
         logger.debug("Starting DNS analysis for %s", domain)
         insights: set[str] = set()
 
-        ns_records = records.get("NS", [])
-        mx_records = records.get("MX", [])
-        txt_records = records.get("TXT", [])
+        if data is None:
+            data = self.preprocess(records)
 
-        # --- Nameserver provider detection ---------------------------------
+        ns_records = records.get("NS", [])
+        mx_records = data["mx"]
+        txt_records = data["txt"]
+        spf_records = data["spf_records"]
+        mx_providers = data["mx_providers"]
+        spf_providers = data["spf_providers"]
+
         _ns_providers = {
-            "wixdns.net":        "Hosting/DNS Provider: Wix",
-            "cloudflare.com":    "DNS/CDN Provider: Cloudflare",
+            "wixdns.net": "Hosting/DNS Provider: Wix",
+            "cloudflare.com": "DNS/CDN Provider: Cloudflare",
             "domaincontrol.com": "DNS Provider: GoDaddy",
-            "awsdns":            "DNS Provider: AWS Route53",
-            "azure-dns":         "DNS Provider: Azure DNS",
-            "google":            "DNS Provider: Google Cloud DNS",
+            "awsdns": "DNS Provider: AWS Route53",
+            "azure-dns": "DNS Provider: Azure DNS",
+            "google": "DNS Provider: Google Cloud DNS",
         }
 
         for ns in ns_records:
@@ -78,43 +123,18 @@ class DNSScanner:
                 if key in ns_lower:
                     insights.add(label)
 
-        # --- Email providers -----------------------------------------------
-        mx_providers = {
-            normalize_provider(mx)
-            for mx in mx_records
-            if normalize_provider(mx)
-        }
-        spf_providers = {
-            normalize_provider(txt)
-            for txt in txt_records
-            if normalize_provider(txt)
-        }
-
         if any("smtp.google.com" in mx for mx in mx_records):
-            insights.add(
-                "[INFO] MX may be simplified due to DNS resolver behaviour"
-            )
+            insights.add("[INFO] MX may be simplified due to DNS resolver behaviour")
 
         if mx_providers or spf_providers:
-            mx_label = (
-                ", ".join(display_provider(p) for p in mx_providers)
-                or "Unknown"
-            )
-            spf_label = (
-                ", ".join(display_provider(p) for p in spf_providers)
-                or "Unknown"
-            )
+            mx_label = ", ".join(display_provider(p) for p in mx_providers) or "Unknown"
+            spf_label = ", ".join(display_provider(p) for p in spf_providers) or "Unknown"
+
             insights.add(f"Email Setup: MX={mx_label} | SPF={spf_label}")
 
             if mx_providers != spf_providers:
-                insights.add(
-                    "[WARNING] Possible email misconfiguration (MX != SPF providers)"
-                )
+                insights.add("[WARNING] Possible email misconfiguration (MX != SPF providers)")
 
-        # --- SPF -------------------------------------------------------
-        spf_records = [
-            txt for txt in txt_records if "v=spf1" in txt.lower()
-        ]
         if not spf_records:
             insights.add("SPF: Not configured")
         else:
@@ -127,8 +147,8 @@ class DNSScanner:
                 elif "+all" in spf_lower:
                     insights.add("[WARNING] SPF: Permissive (+all) - insecure")
 
-        # --- DMARC -----------------------------------------------------
-        dmarc_records, success = self._get_dmarc_record(domain)
+        dmarc_records, success = self.get_dmarc_cached(domain)
+
         if not success:
             insights.add("[WARNING] DMARC: Unable to verify")
         elif not dmarc_records:
@@ -149,23 +169,22 @@ class DNSScanner:
         self,
         records: dict[str, list[str]],
         domain: str,
+        data: Optional[dict] = None,
     ) -> dict:
-        """
-        Calculate a 0-10 security score and return a dict with
-        ``score``, ``risk``, ``issues``, and ``good`` lists.
-        """
         score = 10
         issues: list[str] = []
         good: list[str] = []
 
-        txt_records = records.get("TXT", [])
-        mx_records = records.get("MX", [])
+        if data is None:
+            data = self.preprocess(records)
+
+        txt_records = data["txt"]
+        mx_records = data["mx"]
+        spf_records = data["spf_records"]
+        mx_prov = data["mx_providers"]
+        spf_prov = data["spf_providers"]
 
         # --- SPF -------------------------------------------------------
-        spf_records = [
-            txt for txt in txt_records if "v=spf1" in txt.lower()
-        ]
-
         if not spf_records:
             score -= 2
             issues.append("SPF not configured")
@@ -187,8 +206,7 @@ class DNSScanner:
                 elif "-all" in spf_lower:
                     good.append("SPF is strict (-all)")
 
-        # --- DMARC -----------------------------------------------------
-        dmarc_records, success = self._get_dmarc_record(domain)
+        dmarc_records, success = self.get_dmarc_cached(domain)
 
         if not success:
             score -= 1
@@ -206,18 +224,6 @@ class DNSScanner:
                     good.append("DMARC quarantine enabled")
                 elif "p=reject" in dmarc_lower:
                     good.append("DMARC strict (reject)")
-
-        # --- Provider mismatch -----------------------------------------
-        mx_prov = {
-            normalize_provider(mx)
-            for mx in mx_records
-            if normalize_provider(mx)
-        }
-        spf_prov = {
-            normalize_provider(txt)
-            for txt in txt_records
-            if normalize_provider(txt)
-        }
 
         if mx_prov and spf_prov and mx_prov != spf_prov:
             score -= 1
@@ -239,9 +245,13 @@ class DNSScanner:
             "good": good,
         }
 
-    # ------------------------------------------------------------------
-    # Private helpers
-    # ------------------------------------------------------------------
+
+    def get_dmarc_cached(self, domain: str) -> tuple[list[str], bool]:
+        with self._cache_lock:
+            if domain not in self._dmarc_cache:
+                self._dmarc_cache[domain] = self._get_dmarc_record(domain)
+            return self._dmarc_cache[domain]
+
 
     def _resolve_record(
         self,
@@ -250,6 +260,8 @@ class DNSScanner:
     ) -> list[str]:
         """Resolve a single DNS record type, trying multiple nameservers."""
         resolver = dns.resolver.Resolver()
+        resolver.timeout = self._timeout
+        resolver.lifetime = self._lifetime
         nameserver_groups = [[ns] for ns in DNS_SERVERS[:3]]
 
         answers = None
