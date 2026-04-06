@@ -212,6 +212,87 @@ def print_dns_records(records: dict[str, list[str]]) -> None:
 
         console.print()
 
+# ---------------------------------------------------------------------------
+# Port output
+# ---------------------------------------------------------------------------
+def print_port_summary(data: dict) -> None:
+    _section_header("PORT SCAN SUMMARY")
+
+    console.print(f"  Target: [cyan]{data['target']}[/cyan] ({data['ip']})")
+    if data.get("provider"):
+        console.print(f"  Provider: [yellow]{data['provider']}[/yellow]")
+
+    if data.get("reverse_dns") and data["reverse_dns"] != "-":
+        console.print(f"  Reverse DNS: [magenta]{data['reverse_dns']}[/magenta]")
+
+    console.print(f"  Ports Scanned: {data['ports_scanned']}")
+    console.print(f"  Open Ports: [green]{data['open_count']}[/green]")
+    console.print(f"  Closed: [dim]{data['closed_count']}[/dim]")
+    console.print(f"  Duration: {data['duration']}s\n")
+
+def print_port_table(results: list[dict[str, Any]]) -> None:
+    """Render open ports as a Rich table."""
+    if not results:
+        console.print("  [red]No open ports found.[/red]\n")
+        return
+
+    table = Table(
+        title="Open Ports",
+        box=box.ROUNDED,
+        border_style=themes.TABLE_BORDER,
+        title_style=themes.HEADING,
+        header_style=themes.TABLE_HEADER,
+    )
+
+    table.add_column("#", style=themes.MUTED, justify="right", width=5)
+    table.add_column("Port", style="cyan", justify="right", width=8)
+    table.add_column("State", justify="center", width=10)
+    table.add_column("Service", style="magenta", min_width=12)
+    table.add_column("Banner", style=themes.WARNING_DIM, max_width=50)
+
+    for idx, item in enumerate(results, 1):
+        table.add_row(
+            str(idx),
+            str(item.get("port", "-")),
+            _color_port_state(item.get("state", "unknown")),
+            item.get("service", "-"),
+            item.get("banner", "-"),
+        )
+
+    console.print()
+    console.print(table)
+    console.print()
+
+def print_port_insights(insights: list[str]) -> None:
+    _section_header("PORT INSIGHTS")
+
+    if not insights:
+        console.print("    [dim]- No notable exposure detected[/dim]\n")
+        return
+
+    for insight in insights:
+        if "[CRITICAL]" in insight:
+            clean = insight.replace("[CRITICAL] ", "")
+            console.print(f"    [bold red]![/bold red]  [red]{clean}[/red]")
+
+        elif "[WARNING]" in insight:
+            clean = insight.replace("[WARNING] ", "")
+            console.print(f"    [yellow]![/yellow]  [yellow]{clean}[/yellow]")
+
+        elif "[INFO]" in insight:
+            clean = insight.replace("[INFO] ", "")
+            console.print(f"    [green]+[/green]  [green]{clean}[/green]")
+
+        else:
+            console.print(f"    [dim]-[/dim]  {insight}")
+
+    console.print()
+
+def _color_port_state(state: str) -> str:
+    """Colorize port state."""
+    if state == "open":
+        return "[green]open[/green]"
+    return "[red]closed[/red]"
 
 # ---------------------------------------------------------------------------
 # File save confirmation

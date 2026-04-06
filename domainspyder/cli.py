@@ -20,6 +20,9 @@ from domainspyder.config import (
     DEFAULT_WORDLIST,
     DESCRIPTION,
     VERSION,
+    TOP_PORTS_100,
+    TOP_PORTS_1000,
+    FULL_PORT_RANGE
 )
 from domainspyder.display.banner import print_banner
 from domainspyder.display.formatter import (
@@ -31,9 +34,13 @@ from domainspyder.display.formatter import (
     print_subdomain_table,
     print_target,
     print_total,
+    print_port_table,
+    print_port_summary,
+    print_port_insights
 )
 from domainspyder.scanners.dns_scanner import DNSScanner
 from domainspyder.scanners.subdomain_scanner import SubdomainScanner
+from domainspyder.scanners.port_scanner import PortScanner
 
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
@@ -98,6 +105,22 @@ def _build_parser() -> argparse.ArgumentParser:
         "--raw-only",
         action="store_true",
         help="Show raw DNS records without analysis",
+    )
+
+    # ---- ports command -------------------------------------------------
+    ports_cmd = subparsers.add_parser("ports", help="Port scanning")
+    ports_cmd.add_argument("target", help="Target domain")
+    ports_cmd.add_argument("--ports", help="Custom ports (comma-separated)")
+    ports_cmd.add_argument("--top-100", action="store_true")
+    ports_cmd.add_argument("--top-1000", action="store_true")
+    ports_cmd.add_argument("--full", action="store_true")
+    ports_cmd.add_argument("--fast", action="store_true", help="Fast scan mode")
+    ports_cmd.add_argument("--deep", action="store_true", help="Deep scan mode")
+    ports_cmd.add_argument(
+        "--threads",
+        type=int,
+        default=50,
+        help="Number of threads (default: 50)",
     )
 
     return parser
@@ -187,6 +210,58 @@ def _handle_dns(args: argparse.Namespace) -> None:
         print_dns_insights(insights)
         print_security_score(security)
 
+def _handle_ports(args: argparse.Namespace) -> None:
+    """Run port scanning and display results."""
+    print_banner()
+    print_target(args.target, mode="ports")
+
+    ports = None
+
+    if args.top_100:
+        ports = TOP_PORTS_100
+    elif args.top_1000:
+        ports = TOP_PORTS_1000
+    elif args.full:
+        ports = FULL_PORT_RANGE
+    elif args.ports:
+        try:
+            ports = [int(p.strip()) for p in args.ports.split(",")]
+        except ValueError:
+            console.print("[red]Invalid port list format.[/red]")
+            return
+    mode = "balanced"
+
+    if args.fast:
+        mode = "fast"
+    elif args.deep:
+        mode = "deep"
+
+    scanner = PortScanner(debug=args.debug)
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        transient=True,
+    ) as progress:
+        progress.add_task("[cyan]Scanning ports...", total=None)
+
+        data = scanner.scan(
+            args.target,
+            ports=ports,
+            threads=args.threads,
+            mode=mode,
+        )
+
+    if not data or not data.get("open_ports"):
+        console.print("  [red]No open ports found.[/red]\n")
+        return
+
+    insights = scanner.analyze(data)
+    
+    print_port_summary(data)
+    print_port_table(data["open_ports"])
+    if insights:
+        print_port_insights(insights)
 
 # ------------------------------------------------------------------
 # Entry point
@@ -211,6 +286,7 @@ def main() -> None:
     handlers = {
         "subdomains": _handle_subdomains,
         "dns": _handle_dns,
+        "ports": _handle_ports,
     }
     handler = handlers.get(args.command)
     if handler:
