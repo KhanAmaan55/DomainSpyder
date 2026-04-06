@@ -45,10 +45,6 @@ class SubdomainScanner:
     def __init__(self, *, debug: bool = False) -> None:
         self._debug = debug
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
-
     def scan(
         self,
         domain: str,
@@ -92,10 +88,6 @@ class SubdomainScanner:
             return self._check_alive(unique, threads)
 
         return sorted(unique)
-
-    # ------------------------------------------------------------------
-    # Private: discovery strategies
-    # ------------------------------------------------------------------
 
     def _run_bruteforce(
         self,
@@ -165,10 +157,6 @@ class SubdomainScanner:
                     subs.extend(result)
 
         return subs
-
-    # ------------------------------------------------------------------
-    # Private: alive checking
-    # ------------------------------------------------------------------
 
     def _check_alive(
         self,
