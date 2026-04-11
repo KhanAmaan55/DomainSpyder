@@ -11,6 +11,7 @@ DomainSpyder is a **multi-command CLI framework** that helps you:
 
 * **Discover assets** (subdomains via passive + active enumeration)
 * **Analyze DNS records** (comprehensive DNS data with security scoring)
+* **Scan exposed ports** (fast TCP connect scanning with service banners)
 * **Detect live services** (HTTP probing with metadata extraction)
 * **Intelligence gathering** (email setup analysis, DNS provider detection, security posture)
 
@@ -76,11 +77,34 @@ DomainSpyder is a **multi-command CLI framework** that helps you:
 
 ---
 
+### 🔐 Port Scanning & Exposure Analysis
+
+* **TCP port scanning**:
+  * Concurrent TCP connect scanning
+  * Default common-port scan (14 ports)
+  * Custom port selection support
+  * Preset scans (`--top-100`, `--top-1000`, `--full`)
+
+* **Service fingerprinting**:
+  * Basic service identification (HTTP, HTTPS, SSH, FTP, SMTP, MySQL, RDP, etc.)
+  * Safe banner grabbing for responsive services
+  * Reverse DNS lookup
+  * Hosting/provider detection
+
+* **Exposure insights**:
+  * Open vs closed port statistics
+  * High-risk service exposure warnings
+  * Database/service exposure detection
+  * Web-only exposure identification
+
+---
+
 ### ⚡ Performance Optimizations
 
 * Parallel passive + active enumeration
 * Concurrent DNS record resolution
 * ThreadPool-based concurrency with configurable thread counts
+* Concurrent TCP connect scanning for port enumeration
 * Resolver pool with DNS nameserver rotation
 * Thread-local HTTP session reuse (connection pooling)
 * Lightweight throttling for stability and rate-limit avoidance
@@ -290,12 +314,131 @@ domainspyder dns example.com --raw-only
 
 Shows DNS records without analysis or security scoring.
 
+---
+
+## 🔐 Port Scanning & Exposure Analysis
+
+### Basic Port Scan
+
+```bash
+domainspyder ports example.com
+```
+
+Scans the default common ports and provides:
+- **Open port detection** (TCP connect scan)
+- **Service identification** (basic port-to-service mapping)
+- **Banner grabbing** (safe banner collection where applicable)
+- **Infrastructure insights** (IP resolution, reverse DNS, hosting/provider detection)
+- **Exposure analysis** (risky services, web-only exposure, broad attack surface)
+
+**Example Output:**
+```
+  ────────────────────────────────────────────────────────────
+  PORT SCAN SUMMARY
+  ────────────────────────────────────────────────────────────
+
+  Target: google.com (142.251.223.206)
+  Provider: Unknown
+  Reverse DNS: tzdela-as-in-f14.1e100.net
+  Ports Scanned: 14
+  Open Ports: 2
+  Closed: 12
+  Duration: 1.124s
+
+
+                              Open Ports                               
+╭───────┬──────────┬────────────┬──────────────┬──────────────────────╮
+│     # │     Port │   State    │ Service      │ Banner               │
+├───────┼──────────┼────────────┼──────────────┼──────────────────────┤
+│     1 │       80 │    open    │ http         │ HTTP/1.0 200 OK      │
+│     2 │      443 │    open    │ https        │ TLS (banner skipped) │
+╰───────┴──────────┴────────────┴──────────────┴──────────────────────╯
+
+
+  ────────────────────────────────────────────────────────────
+  PORT INSIGHTS
+  ────────────────────────────────────────────────────────────
+
+    +  Only web ports exposed (80, 443)
+```
+
+---
+
+### Port Scan Modes & Presets
+
+DomainSpyder provides **scan presets and modes** that control:
+
+* Port coverage
+* Speed vs depth
+* Banner grabbing behavior
+
+| Option         | Behavior                                              |
+| -------------- | ----------------------------------------------------- |
+| Default        | Scans 14 common ports with balanced settings          |
+| `--top-100`    | Scans a broader top-port preset                       |
+| `--top-1000`   | Scans ports `1-1000`                                  |
+| `--full`       | Scans the full TCP range `1-65535`                    |
+| `--fast`       | Faster scan, higher concurrency, banner grab disabled |
+| `--deep`       | Deeper scan with banner grabbing enabled              |
+
+### ⚙️ Examples
+
+**Fast common-port scan:**
+```bash
+domainspyder ports example.com --fast
+```
+Use for quick checks where speed matters more than banner collection.
+
+**Scan the top 100 ports:**
+```bash
+domainspyder ports example.com --top-100
+```
+Use for broader exposure checks without scanning the full range.
+
+**Scan the top 1000 ports quickly:**
+```bash
+domainspyder ports example.com --top-1000 --fast
+```
+Use for expanded reconnaissance with reduced per-port overhead.
+
+**Deep scan with banner grabbing:**
+```bash
+domainspyder ports example.com --top-100 --deep
+```
+Use when you want richer service details from responsive ports.
+
+---
+
+## ⚙️ Port Scanning: Common Options
+
+```bash
+# Custom ports
+domainspyder ports example.com --ports 80,443,8080
+
+# Top 100 ports
+domainspyder ports example.com --top-100
+
+# Top 1000 ports
+domainspyder ports example.com --top-1000
+
+# Full TCP range
+domainspyder ports example.com --full
+
+# Custom thread count
+domainspyder ports example.com --top-1000 --threads 100
+
+# Combine options
+domainspyder ports example.com --ports 22,80,443,3306 --deep --threads 75
+```
+
+---
 
 ### 🐞 Debug Mode (Global)
 
 ```bash
 domainspyder --debug subdomains example.com
 domainspyder --debug dns example.com
+domainspyder --debug ports example.com --top-100
 ```
 
 Enables detailed logging for troubleshooting and development.
@@ -317,6 +460,9 @@ domainspyder subdomains target.com --brute-only --brutemode fast
 # Analyze DNS security posture
 domainspyder dns target.com
 
+# Scan exposed services
+domainspyder ports target.com --top-100
+
 # Run with debug logging for troubleshooting
 domainspyder --debug dns target.com --raw-only
 ```
@@ -336,6 +482,7 @@ domainspyder/
 ├── scanners/                # Core scanning logic
 │   ├── __init__.py
 │   ├── dns_scanner.py       # DNSScanner class (resolution, analysis, security scoring)
+│   ├── port_scanner.py      # PortScanner class (scanning, banner grabbing, analysis)
 │   └── subdomain_scanner.py # SubdomainScanner class (passive + active enumeration)
 │
 ├── sources/                 # Data sources for passive enumeration
@@ -371,7 +518,7 @@ DomainSpyder follows a **modular, layered design**:
 
 ### **CLI Layer** (`cli.py`)
 - Argument parsing & validation
-- Command routing (subdomains, dns)
+- Command routing (subdomains, dns, ports)
 - User interface orchestration
 
 ### **Core Scanning Layer** (`scanners/`)
@@ -386,6 +533,12 @@ DomainSpyder follows a **modular, layered design**:
 - Email security analysis (SPF, DMARC provider detection)
 - Infrastructure insights (nameserver, CDN, hosting provider detection)
 - Security scoring & risk assessment
+
+**PortScanner:**
+- Concurrent TCP connect scanning
+- Port preset selection and custom port support
+- Safe banner grabbing and service identification
+- Exposure analysis with provider and reverse-DNS enrichment
 
 ### **Data Sources Layer** (`sources/`)
 - Pluggable passive enumeration sources
