@@ -1,3 +1,4 @@
 requests
+httpx
 dnspython
 rich

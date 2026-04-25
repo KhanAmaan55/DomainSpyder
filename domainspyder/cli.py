@@ -29,6 +29,7 @@ from domainspyder.display.formatter import (
     console,
     print_dns_insights,
     print_dns_records,
+    print_tech_summary,
     print_saved,
     print_security_score,
     print_subdomain_table,
@@ -41,6 +42,7 @@ from domainspyder.display.formatter import (
 from domainspyder.scanners.dns_scanner import DNSScanner
 from domainspyder.scanners.subdomain_scanner import SubdomainScanner
 from domainspyder.scanners.port_scanner import PortScanner
+from domainspyder.scanners.tech_scanner import TechScanner
 
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
@@ -122,6 +124,10 @@ def _build_parser() -> argparse.ArgumentParser:
         default=50,
         help="Number of threads (default: 50)",
     )
+
+    # ---- tech command --------------------------------------------------
+    tech_cmd = subparsers.add_parser("tech", help="Technology detection")
+    tech_cmd.add_argument("target", help="Target domain")
 
     return parser
 
@@ -263,6 +269,32 @@ def _handle_ports(args: argparse.Namespace) -> None:
     if insights:
         print_port_insights(insights)
 
+
+def _handle_tech(args: argparse.Namespace) -> None:
+    """Run technology detection and display results."""
+    print_banner()
+    print_target(args.target, mode="tech")
+
+    scanner = TechScanner(debug=args.debug)
+
+    try:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            transient=True,
+        ) as progress:
+            progress.add_task("[cyan]Detecting technologies...", total=None)
+            data = scanner.scan(args.target)
+    except KeyboardInterrupt:
+        console.print("\n  [yellow]Scan aborted by user (Ctrl+C).[/yellow]\n")
+        return
+
+    if data.get("error"):
+        console.print(f"  [red]Technology scan failed:[/red] {data['error']}\n")
+        return
+
+    print_tech_summary(data)
+
 # ------------------------------------------------------------------
 # Entry point
 # ------------------------------------------------------------------
@@ -287,10 +319,15 @@ def main() -> None:
         "subdomains": _handle_subdomains,
         "dns": _handle_dns,
         "ports": _handle_ports,
+        "tech": _handle_tech,
     }
     handler = handlers.get(args.command)
     if handler:
-        handler(args)
+        try:
+            handler(args)
+        except KeyboardInterrupt:
+            console.print("\n  [yellow]Aborted by user.[/yellow]\n")
+            raise SystemExit(130)
 
 
 if __name__ == "__main__":

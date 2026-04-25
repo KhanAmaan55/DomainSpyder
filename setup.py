@@ -2,13 +2,14 @@ from setuptools import setup, find_packages
 
 setup(
     name="domainspyder",
-    version="2.0.0",
+    version="0.5.0",
     description="Domain Intelligence Framework",
     author="Amaan Khan",
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
         "requests",
+        "httpx",
         "dnspython",
         "rich",
     ],

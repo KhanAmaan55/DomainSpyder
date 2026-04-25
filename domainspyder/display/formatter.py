@@ -294,6 +294,49 @@ def _color_port_state(state: str) -> str:
         return "[green]open[/green]"
     return "[red]closed[/red]"
 
+
+# ---------------------------------------------------------------------------
+# Technology output
+# ---------------------------------------------------------------------------
+
+def print_tech_summary(data: dict[str, Any]) -> None:
+    """Render technology detection results."""
+    _section_header("TECHNOLOGY DETECTION")
+
+    console.print(f"  Target: [cyan]{data['target']}[/cyan]")
+    if data.get("url"):
+        console.print(f"  URL: [magenta]{data['url']}[/magenta]")
+    if data.get("status") is not None:
+        console.print(f"  Status: {color_status(data['status'])}")
+    console.print()
+
+    categories = data.get("categories", [])
+    if not categories:
+        console.print("  [yellow]No technologies confidently detected.[/yellow]\n")
+        return
+
+    category_width = max(len(item["category"]) for item in categories) + 2
+    name_width = max(len(item["name"]) for item in categories) + 2
+
+    for item in categories:
+        color = themes.score_color(item["score"])
+        console.print(
+            "  "
+            f"[bold white][{item['category']:<{category_width}}][/bold white] "
+            f"[cyan]{item['name']:<{name_width}}[/cyan] "
+            f"[{color}]{item['meter']}[/{color}] "
+            f"([{color}]{item['confidence']}[/{color}])"
+        )
+
+    other = data.get("other", [])
+    if other:
+        console.print()
+        console.print("  [bold white]Other Technologies:[/bold white]")
+        for item in other:
+            console.print(f"    [magenta]+[/magenta] {item}")
+
+    console.print()
+
 # ---------------------------------------------------------------------------
 # File save confirmation
 # ---------------------------------------------------------------------------
