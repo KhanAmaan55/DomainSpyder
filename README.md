@@ -9,11 +9,11 @@ It is designed to perform fast, scalable, and extensible domain analysis
 
 DomainSpyder is a **multi-command CLI framework** that helps you:
 
-* **Discover assets** (subdomains via passive + active enumeration)
-* **Analyze DNS records** (comprehensive DNS data with security scoring)
-* **Scan exposed ports** (fast TCP connect scanning with service banners)
-* **Detect live services** (HTTP probing with metadata extraction)
-* **Intelligence gathering** (email setup analysis, DNS provider detection, security posture)
+- **Discover assets** (subdomains via passive + active enumeration)
+- **Analyze DNS records** (comprehensive DNS data with security scoring)
+- **Scan exposed ports** (fast TCP connect scanning with service banners)
+- **Detect live services** (HTTP probing with metadata extraction)
+- **Intelligence gathering** (email setup analysis, DNS provider detection, security posture)
 
 ---
 
@@ -21,105 +21,121 @@ DomainSpyder is a **multi-command CLI framework** that helps you:
 
 ### 🔍 Subdomain Enumeration
 
-* **Passive enumeration**:
-  * crt.sh (Certificate Transparency logs)
-  * AlienVault OTX (Passive DNS)
-  * HackerTarget (API)
-  * Wayback Machine (Internet Archive CDX)
-  * RapidDNS (Web scraper)
+- **Passive enumeration**:
+  - crt.sh (Certificate Transparency logs)
+  - AlienVault OTX (Passive DNS)
+  - HackerTarget (API)
+  - Wayback Machine (Internet Archive CDX)
+  - RapidDNS (Web scraper)
 
-* **Active enumeration**:
-  * DNS brute force (multithreaded)
-  * Configurable brute force modes (fast/balanced/stealth)
-  * Custom wordlist support
-  * Optional brute-only mode
+- **Active enumeration**:
+  - DNS brute force (multithreaded)
+  - Configurable brute force modes (fast/balanced/stealth)
+  - Custom wordlist support
+  - Optional brute-only mode
 
-* **Post-processing**:
-  * Deduplication & case-insensitive filtering
-  * Subdomain validation (rejects wildcards, invalid domains)
+- **Post-processing**:
+  - Deduplication & case-insensitive filtering
+  - Subdomain validation (rejects wildcards, invalid domains)
 
 ---
 
 ### 🌐 Alive Detection
 
-* Parallel HTTP probing with timeout handling
-* HTTPS → HTTP fallback
-* Status code detection
-* Server header extraction
-* Page title extraction
-* Results filterable by "alive" status
+- Parallel HTTP probing with timeout handling
+- HTTPS → HTTP fallback
+- Status code detection
+- Server header extraction
+- Page title extraction
+- Results filterable by "alive" status
 
 ---
 
 ### 🔎 DNS Intelligence & Analysis
 
-* **Comprehensive DNS resolving** (6 record types in parallel):
-  * A, AAAA (IPv4/IPv6)
-  * MX (Mail servers)
-  * NS (Nameservers)
-  * TXT, CNAME
+- **Comprehensive DNS resolving** (6 record types in parallel):
+  - A, AAAA (IPv4/IPv6)
+  - MX (Mail servers)
+  - NS (Nameservers)
+  - TXT, CNAME
 
-* **Email security analysis**:
-  * SPF record validation (strict/-all, soft fail/~all, permissive/+all)
-  * DMARC policy detection (reject, quarantine, none)
-  * Email provider identification (Google Workspace, Microsoft 365, Zoho, Amazon SES)
-  * MX vs SPF provider mismatch warnings
+- **Email security analysis**:
+  - SPF record validation (strict/-all, soft fail/~all, permissive/+all)
+  - DMARC policy detection (reject, quarantine, none)
+  - Email provider identification (Google Workspace, Microsoft 365, Zoho, Amazon SES)
+  - MX vs SPF provider mismatch warnings
 
-* **DNS infrastructure insights**:
-  * Hosting/CDN provider detection (Cloudflare, AWS Route53, Azure DNS, GoDaddy, Wix, Google Cloud)
-  * Nameserver analysis
-  * DMARC cached lookups
+- **DNS infrastructure insights**:
+  - Hosting/CDN provider detection (Cloudflare, AWS Route53, Azure DNS, GoDaddy, Wix, Google Cloud)
+  - Nameserver analysis
+  - DMARC cached lookups
 
-* **Security scoring** (0-10 scale):
-  * Risk assessment (Low/Moderate/High)
-  * Itemized issue detection
-  * Best-practice recommendations
+- **Security scoring** (0-10 scale):
+  - Risk assessment (Low/Moderate/High)
+  - Itemized issue detection
+  - Best-practice recommendations
 
 ---
 
 ### 🔐 Port Scanning & Exposure Analysis
 
-* **TCP port scanning**:
-  * Concurrent TCP connect scanning
-  * Default common-port scan (14 ports)
-  * Custom port selection support
-  * Preset scans (`--top-100`, `--top-1000`, `--full`)
+- **TCP port scanning**:
+  - Concurrent TCP connect scanning
+  - Default common-port scan (14 ports)
+  - Custom port selection support
+  - Preset scans (`--top-100`, `--top-1000`, `--full`)
 
-* **Service fingerprinting**:
-  * Basic service identification (HTTP, HTTPS, SSH, FTP, SMTP, MySQL, RDP, etc.)
-  * Safe banner grabbing for responsive services
-  * Reverse DNS lookup
-  * Hosting/provider detection
+- **Service fingerprinting**:
+  - Basic service identification (HTTP, HTTPS, SSH, FTP, SMTP, MySQL, RDP, etc.)
+  - Safe banner grabbing for responsive services
+  - Reverse DNS lookup
+  - Hosting/provider detection
 
-* **Exposure insights**:
-  * Open vs closed port statistics
-  * High-risk service exposure warnings
-  * Database/service exposure detection
-  * Web-only exposure identification
+- **Exposure insights**:
+  - Open vs closed port statistics
+  - High-risk service exposure warnings
+  - Database/service exposure detection
+  - Web-only exposure identification
+
+---
+
+### 🔬 Technology Detection
+
+- **Multi-method pipeline**:
+  - HTTP fingerprinting (headers, cookies)
+  - Meta-tag & HTML signature parsing
+  - Script & stylesheet dependency extraction
+  - `robots.txt` admin panel probing
+  - DNS TXT hints (verification tags)
+
+- **Categorized results**:
+  - Frontend, Backend, Server, CMS, and CDN categorization
+  - Aggregated confidence scoring (`Low` to `High`)
+  - Discovery of secondary libraries (Webpack, Next.js, etc.)
 
 ---
 
 ### ⚡ Performance Optimizations
 
-* Parallel passive + active enumeration
-* Concurrent DNS record resolution
-* ThreadPool-based concurrency with configurable thread counts
-* Concurrent TCP connect scanning for port enumeration
-* Resolver pool with DNS nameserver rotation
-* Thread-local HTTP session reuse (connection pooling)
-* Lightweight throttling for stability and rate-limit avoidance
-* DMARC result caching with thread-safe locking
+- Parallel passive + active enumeration
+- Concurrent DNS record resolution
+- ThreadPool-based concurrency with configurable thread counts
+- Concurrent TCP connect scanning for port enumeration
+- Resolver pool with DNS nameserver rotation
+- Thread-local HTTP session reuse (connection pooling)
+- Lightweight throttling for stability and rate-limit avoidance
+- DMARC result caching with thread-safe locking
 
 ---
 
 ### 🖥️ CLI Experience
 
-* Multi-command interface (readily extensible)
-* Rich terminal tables & progress indicators
-* ASCII banner with framework info
-* Debug mode for detailed logging
-* Flexible scan tuning via command options
-* Color-coded output (semantic themes)
+- Multi-command interface (readily extensible)
+- Rich terminal tables & progress indicators
+- ASCII banner with framework info
+- Debug mode for detailed logging
+- Flexible scan tuning via command options
+- Color-coded output (semantic themes)
 
 ---
 
@@ -149,9 +165,9 @@ pip install -e .
 domainspyder subdomains example.com
 ```
 
-* Runs **passive enumeration** (all 5 sources) + **DNS brute force** in parallel
-* Deduplicates results
-* Optimized for speed (balanced mode internally)
+- Runs **passive enumeration** (all 5 sources) + **DNS brute force** in parallel
+- Deduplicates results
+- Optimized for speed (balanced mode internally)
 
 ---
 
@@ -161,11 +177,12 @@ domainspyder subdomains example.com
 domainspyder subdomains example.com --alive
 ```
 
-* Filters only **live/responsive subdomains**
-* Includes HTTP metadata (status code, server, page title)
-* Tries HTTPS first, falls back to HTTP
+- Filters only **live/responsive subdomains**
+- Includes HTTP metadata (status code, server, page title)
+- Tries HTTPS first, falls back to HTTP
 
 **Example Output:**
+
 ```
 api.example.com          200   nginx
 dev.example.com          403   cloudflare
@@ -182,9 +199,9 @@ Run only DNS brute force with full control:
 domainspyder subdomains example.com --brute-only
 ```
 
-* Skips all passive sources
-* Runs only dictionary-based DNS brute force
-* Uses **balanced mode** by default (50 threads, 0.005s delay)
+- Skips all passive sources
+- Runs only dictionary-based DNS brute force
+- Uses **balanced mode** by default (50 threads, 0.005s delay)
 
 ---
 
@@ -192,34 +209,40 @@ domainspyder subdomains example.com --brute-only
 
 DomainSpyder provides **execution profiles** that control:
 
-* Request delay between checks
-* Thread count (concurrency level)
-* Scanning aggressiveness
+- Request delay between checks
+- Thread count (concurrency level)
+- Scanning aggressiveness
 
-| Mode       | Delay  | Threads | Best For                                 |
-| ---------- | ------ | ------- | ---------------------------------------- |
-| `fast`     | 0.001s | 80      | Small wordlists, unrestricted targets    |
-| `balanced` | 0.005s | 50      | Medium wordlists, general recon (DEFAULT)|
-| `stealth`  | 0.01s  | 20      | Large wordlists, WAF/rate-limit avoidance|
+| Mode       | Delay  | Threads | Best For                                  |
+| ---------- | ------ | ------- | ----------------------------------------- |
+| `fast`     | 0.001s | 80      | Small wordlists, unrestricted targets     |
+| `balanced` | 0.005s | 50      | Medium wordlists, general recon (DEFAULT) |
+| `stealth`  | 0.01s  | 20      | Large wordlists, WAF/rate-limit avoidance |
 
 ### ⚙️ Examples
 
 **Fast mode (aggressive):**
+
 ```bash
 domainspyder subdomains example.com --brute-only --brutemode fast
 ```
+
 Use for small wordlists (< 5,000 entries) on targets without rate limiting.
 
 **Balanced mode (recommended):**
+
 ```bash
 domainspyder subdomains example.com --brute-only --brutemode balanced
 ```
+
 Use for medium wordlists (5k – 50k entries) in general recon workflows.
 
 **Stealth mode (slow & reliable):**
+
 ```bash
 domainspyder subdomains example.com --brute-only --brutemode stealth
 ```
+
 Use for large wordlists (50k+ entries) or targets with WAF/rate limiting.
 
 > ⚠️ Note: `--brutemode` is only applied when using `--brute-only`. It is ignored in default mode.
@@ -244,21 +267,20 @@ domainspyder subdomains example.com --alive --threads 75 --save live.txt
 
 ---
 
-
 ## 🔎 DNS Intelligence & Analysis
-
-### Basic DNS Enumeration
 
 ```bash
 domainspyder dns example.com
 ```
 
 Resolves all DNS records (A, AAAA, MX, NS, TXT, CNAME) and provides:
+
 - **Email security analysis** (SPF, DMARC, email providers)
 - **Infrastructure insights** (DNS providers, CDN detection, nameserver analysis)
 - **Security scoring** (0-10 risk assessment)
 
 **Example Output:**
+
 ```
 ═══════════════════════════════════════════════════════════════
  DNS Records
@@ -318,13 +340,12 @@ Shows DNS records without analysis or security scoring.
 
 ## 🔐 Port Scanning & Exposure Analysis
 
-### Basic Port Scan
-
 ```bash
-domainspyder ports example.com
+domainspyder ports amazon.com
 ```
 
 Scans the default common ports and provides:
+
 - **Open port detection** (TCP connect scan)
 - **Service identification** (basic port-to-service mapping)
 - **Banner grabbing** (safe banner collection where applicable)
@@ -332,27 +353,32 @@ Scans the default common ports and provides:
 - **Exposure analysis** (risky services, web-only exposure, broad attack surface)
 
 **Example Output:**
+
 ```
+
+  TARGET   amazon.com  (ports)
+
+
   ────────────────────────────────────────────────────────────
   PORT SCAN SUMMARY
   ────────────────────────────────────────────────────────────
 
-  Target: google.com (142.251.223.206)
-  Provider: Unknown
-  Reverse DNS: tzdela-as-in-f14.1e100.net
+  Target: amazon.com (98.82.161.185)
+  Provider: AWS (Amazon Web Services)
+  Reverse DNS: ec2-98-82-161-185.compute-1.amazonaws.com
   Ports Scanned: 14
   Open Ports: 2
   Closed: 12
-  Duration: 1.124s
+  Duration: 1.156s
 
 
-                              Open Ports                               
-╭───────┬──────────┬────────────┬──────────────┬──────────────────────╮
-│     # │     Port │   State    │ Service      │ Banner               │
-├───────┼──────────┼────────────┼──────────────┼──────────────────────┤
-│     1 │       80 │    open    │ http         │ HTTP/1.0 200 OK      │
-│     2 │      443 │    open    │ https        │ TLS (banner skipped) │
-╰───────┴──────────┴────────────┴──────────────┴──────────────────────╯
+                                   Open Ports
+╭───────┬──────────┬────────────┬──────────────┬────────────────────────────────╮
+│     # │     Port │   State    │ Service      │ Banner                         │
+├───────┼──────────┼────────────┼──────────────┼────────────────────────────────┤
+│     1 │       80 │    open    │ http         │ HTTP/1.1 301 Moved Permanently │
+│     2 │      443 │    open    │ https        │ TLS (banner skipped)           │
+╰───────┴──────────┴────────────┴──────────────┴────────────────────────────────╯
 
 
   ────────────────────────────────────────────────────────────
@@ -368,43 +394,51 @@ Scans the default common ports and provides:
 
 DomainSpyder provides **scan presets and modes** that control:
 
-* Port coverage
-* Speed vs depth
-* Banner grabbing behavior
+- Port coverage
+- Speed vs depth
+- Banner grabbing behavior
 
-| Option         | Behavior                                              |
-| -------------- | ----------------------------------------------------- |
-| Default        | Scans 14 common ports with balanced settings          |
-| `--top-100`    | Scans a broader top-port preset                       |
-| `--top-1000`   | Scans ports `1-1000`                                  |
-| `--full`       | Scans the full TCP range `1-65535`                    |
-| `--fast`       | Faster scan, higher concurrency, banner grab disabled |
-| `--deep`       | Deeper scan with banner grabbing enabled              |
+| Option       | Behavior                                              |
+| ------------ | ----------------------------------------------------- |
+| Default      | Scans 14 common ports with balanced settings          |
+| `--top-100`  | Scans a broader top-port preset                       |
+| `--top-1000` | Scans ports `1-1000`                                  |
+| `--full`     | Scans the full TCP range `1-65535`                    |
+| `--fast`     | Faster scan, higher concurrency, banner grab disabled |
+| `--deep`     | Deeper scan with banner grabbing enabled              |
 
 ### ⚙️ Examples
 
 **Fast common-port scan:**
+
 ```bash
 domainspyder ports example.com --fast
 ```
+
 Use for quick checks where speed matters more than banner collection.
 
 **Scan the top 100 ports:**
+
 ```bash
 domainspyder ports example.com --top-100
 ```
+
 Use for broader exposure checks without scanning the full range.
 
 **Scan the top 1000 ports quickly:**
+
 ```bash
 domainspyder ports example.com --top-1000 --fast
 ```
+
 Use for expanded reconnaissance with reduced per-port overhead.
 
 **Deep scan with banner grabbing:**
+
 ```bash
 domainspyder ports example.com --top-100 --deep
 ```
+
 Use when you want richer service details from responsive ports.
 
 ---
@@ -429,6 +463,42 @@ domainspyder ports example.com --top-1000 --threads 100
 
 # Combine options
 domainspyder ports example.com --ports 22,80,443,3306 --deep --threads 75
+```
+
+---
+
+## 🔬 Technology Detection
+
+```bash
+domainspyder tech yahoo.com
+```
+
+Scans the target for web technologies using a multi-method pipeline and provides:
+
+- **Framework & CMS identification** (Frontend, Backend, Server)
+- **Metadata extraction** (Confidence levels based on signal strength)
+- **Other linked tools/libraries** (Analytics, Webpack, UI libraries, etc.)
+
+**Example Output:**
+
+```
+  TARGET   yahoo.com  (tech)
+
+
+  ────────────────────────────────────────────────────────────
+  TECHNOLOGY DETECTION
+  ────────────────────────────────────────────────────────────
+
+  Target: yahoo.com
+  URL: https://www.yahoo.com/
+  Status: 200
+
+  [Frontend  ] React     ████████░░ (High)
+  [CMS       ] Magento   ████░░░░░░ (Low)
+
+  Other Technologies:
+    + Next.js
+    + Webpack
 ```
 
 ---
@@ -463,6 +533,9 @@ domainspyder dns target.com
 # Scan exposed services
 domainspyder ports target.com --top-100
 
+# Discover applied web technologies
+domainspyder tech target.com
+
 # Run with debug logging for troubleshooting
 domainspyder --debug dns target.com --raw-only
 ```
@@ -483,7 +556,8 @@ domainspyder/
 │   ├── __init__.py
 │   ├── dns_scanner.py       # DNSScanner class (resolution, analysis, security scoring)
 │   ├── port_scanner.py      # PortScanner class (scanning, banner grabbing, analysis)
-│   └── subdomain_scanner.py # SubdomainScanner class (passive + active enumeration)
+│   ├── subdomain_scanner.py # SubdomainScanner class (passive + active enumeration)
+│   └── tech_scanner.py      # TechScanner class (multi-method web tech detection)
 │
 ├── sources/                 # Data sources for passive enumeration
 │   ├── __init__.py
@@ -517,6 +591,7 @@ LICENCE                      # License information
 DomainSpyder follows a **modular, layered design**:
 
 ### **CLI Layer** (`cli.py`)
+
 - Argument parsing & validation
 - Command routing (subdomains, dns, ports)
 - User interface orchestration
@@ -524,34 +599,46 @@ DomainSpyder follows a **modular, layered design**:
 ### **Core Scanning Layer** (`scanners/`)
 
 **SubdomainScanner:**
+
 - Orchestrates passive sources + brute-force in parallel
 - Deduplicates & validates results
 - Optionally probes for live services (HTTP metadata extraction)
 
 **DNSScanner:**
+
 - Parallel DNS record resolution (6 record types)
 - Email security analysis (SPF, DMARC provider detection)
 - Infrastructure insights (nameserver, CDN, hosting provider detection)
 - Security scoring & risk assessment
 
 **PortScanner:**
+
 - Concurrent TCP connect scanning
 - Port preset selection and custom port support
 - Safe banner grabbing and service identification
 - Exposure analysis with provider and reverse-DNS enrichment
 
+**TechScanner:**
+
+- Multi-method detection pipeline (HTTP headers/body, tags, scripts, `robots.txt`, DNS hints)
+- Categorized output with confidence scoring
+- Security header analysis
+
 ### **Data Sources Layer** (`sources/`)
+
 - Pluggable passive enumeration sources
 - Inherit from `BaseSource` for consistency
 - Each source implements independent HTTP/web requests
 
 ### **Utilities Layer** (`utils.py`)
+
 - DNS & HTTP session management
 - Domain validation & filtering
 - Provider mapping & normalization
 - Shared helper functions
 
 ### **Display Layer** (`display/`)
+
 - Banner rendering
 - Rich table formatting
 - Progress indicators
