@@ -338,6 +338,305 @@ def print_tech_summary(data: dict[str, Any]) -> None:
     console.print()
 
 # ---------------------------------------------------------------------------
+# Domain info output
+# ---------------------------------------------------------------------------
+
+def print_info_summary(data: dict[str, Any]) -> None:
+    """Render the main domain registration information panel."""
+    _section_header("DOMAIN INFORMATION")
+
+    domain = data.get("domain", "-")
+    console.print(f"  Domain:       [cyan]{domain}[/cyan]")
+
+    registrar = data.get("registrar")
+    if registrar:
+        console.print(f"  Registrar:    [yellow]{registrar}[/yellow]")
+
+    # Creation date + age
+    creation = data.get("creation_date")
+    age = data.get("age", {})
+    if creation:
+        age_suffix = ""
+        if age:
+            age_suffix = (
+                f"  [dim]({age.get('human', '')} — "
+                f"{age.get('label', '')})[/dim]"
+            )
+        console.print(f"  Created:      [green]{creation}[/green]{age_suffix}")
+
+    # Expiration date + days remaining
+    expiration = data.get("expiration_date")
+    expiry = data.get("expiry", {})
+    if expiration:
+        days_left = expiry.get("days_remaining")
+        alert = expiry.get("alert")
+
+        if alert == "CRITICAL":
+            color = "red"
+        elif alert == "WARNING":
+            color = "yellow"
+        else:
+            color = "green"
+
+        expiry_suffix = ""
+        if days_left is not None:
+            expiry_suffix = f"  [dim]({days_left} days remaining)[/dim]"
+
+        console.print(
+            f"  Expires:      [{color}]{expiration}[/{color}]{expiry_suffix}",
+        )
+
+    # Updated date
+    updated = data.get("updated_date")
+    if updated:
+        console.print(f"  Updated:      [dim]{updated}[/dim]")
+
+    # Organization / registrant
+    registrant = data.get("registrant", {})
+    if registrant:
+        org = registrant.get("org", "")
+        name = registrant.get("name", "")
+        is_private = registrant.get("is_private", False)
+
+        display_val = org or name or "-"
+        privacy_tag = "  [dim][private][/dim]" if is_private else ""
+        console.print(
+            f"  Organization: [magenta]{display_val}[/magenta]{privacy_tag}",
+        )
+
+        country = registrant.get("country")
+        if country:
+            console.print(f"  Country:      [dim]{country}[/dim]")
+
+    # DNSSEC
+    dnssec = data.get("dnssec")
+    if dnssec:
+        dnssec_lower = dnssec.lower()
+        if "signed" in dnssec_lower and "unsigned" not in dnssec_lower:
+            console.print(f"  DNSSEC:       [green]{dnssec}[/green]")
+        else:
+            console.print(f"  DNSSEC:       [yellow]{dnssec}[/yellow]")
+
+    # Sources metadata
+    sources_used = data.get("sources_used", [])
+    sources_failed = data.get("sources_failed", [])
+    duration = data.get("duration")
+
+    console.print()
+    if sources_used:
+        console.print(
+            f"  Sources:      [dim]{', '.join(sources_used)}[/dim]",
+        )
+    if sources_failed:
+        console.print(
+            f"  Failed:       [red]{', '.join(sources_failed)}[/red]",
+        )
+    if duration is not None:
+        console.print(f"  Duration:     [dim]{duration}s[/dim]")
+
+    console.print()
+
+
+def print_info_ssl(data: dict[str, Any]) -> None:
+    """Render SSL certificate information section."""
+    # Only render if SSL data is present
+    has_ssl = any(k.startswith("ssl_") for k in data)
+    if not has_ssl:
+        return
+
+    _section_header("SSL CERTIFICATE")
+
+    issuer = data.get("ssl_issuer", "-")
+    issuer_org = data.get("ssl_issuer_org")
+    if issuer_org and issuer_org != issuer:
+        console.print(
+            f"  Issuer:       [cyan]{issuer}[/cyan]"
+            f"  [dim]({issuer_org})[/dim]",
+        )
+    else:
+        console.print(f"  Issuer:       [cyan]{issuer}[/cyan]")
+
+    subject = data.get("ssl_subject")
+    if subject:
+        console.print(f"  Subject:      [dim]{subject}[/dim]")
+
+    valid_from = data.get("ssl_valid_from")
+    if valid_from:
+        console.print(f"  Valid From:   [green]{valid_from}[/green]")
+
+    valid_until = data.get("ssl_valid_until")
+    ssl_days = data.get("ssl_days_remaining")
+    if valid_until:
+        if ssl_days is not None:
+            if ssl_days <= 7:
+                color = "red"
+            elif ssl_days <= 30:
+                color = "yellow"
+            else:
+                color = "green"
+            console.print(
+                f"  Valid Until:  [{color}]{valid_until}[/{color}]"
+                f"  [dim]({ssl_days} days remaining)[/dim]",
+            )
+        else:
+            console.print(f"  Valid Until:  {valid_until}")
+
+    san_list = data.get("ssl_san", [])
+    if san_list:
+        # Show first few SANs inline, rest as count
+        display_sans = san_list[:5]
+        console.print(
+            f"  SANs:         [dim]{', '.join(display_sans)}[/dim]",
+        )
+        if len(san_list) > 5:
+            console.print(
+                f"                [dim]... and {len(san_list) - 5} more[/dim]",
+            )
+
+    console.print()
+
+
+def print_info_soa(data: dict[str, Any]) -> None:
+    """Render DNS SOA record section."""
+    # Only render if SOA data is present
+    has_soa = any(k.startswith("soa_") for k in data)
+    if not has_soa:
+        return
+
+    _section_header("DNS SOA RECORD")
+
+    primary_ns = data.get("soa_primary_ns")
+    if primary_ns:
+        console.print(f"  Primary NS:   [cyan]{primary_ns}[/cyan]")
+
+    admin = data.get("soa_admin")
+    if admin:
+        console.print(f"  Admin:        [dim]{admin}[/dim]")
+
+    serial = data.get("soa_serial")
+    if serial is not None:
+        console.print(f"  Serial:       [dim]{serial}[/dim]")
+
+    refresh = data.get("soa_refresh")
+    if refresh is not None:
+        console.print(
+            f"  Refresh:      [dim]{refresh}s"
+            f" ({_seconds_to_human(refresh)})[/dim]",
+        )
+
+    retry = data.get("soa_retry")
+    if retry is not None:
+        console.print(
+            f"  Retry:        [dim]{retry}s"
+            f" ({_seconds_to_human(retry)})[/dim]",
+        )
+
+    expire = data.get("soa_expire")
+    if expire is not None:
+        console.print(
+            f"  Expire:       [dim]{expire}s"
+            f" ({_seconds_to_human(expire)})[/dim]",
+        )
+
+    min_ttl = data.get("soa_min_ttl")
+    if min_ttl is not None:
+        console.print(
+            f"  Min TTL:      [dim]{min_ttl}s"
+            f" ({_seconds_to_human(min_ttl)})[/dim]",
+        )
+
+    console.print()
+
+
+def print_info_nameservers(name_servers: list[str]) -> None:
+    """Render name server list."""
+    if not name_servers:
+        return
+
+    _section_header("NAME SERVERS")
+
+    for ns in name_servers:
+        console.print(f"    [cyan]+[/cyan]  [cyan]{ns}[/cyan]")
+
+    console.print()
+
+
+def print_info_status(status_explained: list[dict[str, str]]) -> None:
+    """Render EPP status codes with human-readable meanings."""
+    if not status_explained:
+        return
+
+    _section_header("REGISTRATION STATUS")
+
+    for item in status_explained:
+        code = item.get("code", "-")
+        meaning = item.get("meaning", "-")
+
+        # Color based on severity
+        code_lower = code.lower()
+        if "hold" in code_lower or "pending" in code_lower:
+            console.print(
+                f"    [red]![/red]  [red]{code}[/red]"
+                f"  [dim]— {meaning}[/dim]",
+            )
+        elif "prohibited" in code_lower:
+            console.print(
+                f"    [yellow]~[/yellow]  [yellow]{code}[/yellow]"
+                f"  [dim]— {meaning}[/dim]",
+            )
+        else:
+            console.print(
+                f"    [green]+[/green]  [green]{code}[/green]"
+                f"  [dim]— {meaning}[/dim]",
+            )
+
+    console.print()
+
+
+def print_info_insights(insights: list[str]) -> None:
+    """Render domain analysis insights."""
+    _section_header("DOMAIN INSIGHTS")
+
+    if not insights:
+        console.print("    [dim]- No notable findings[/dim]\n")
+        return
+
+    for insight in insights:
+        if "[CRITICAL]" in insight:
+            clean = insight.replace("[CRITICAL] ", "")
+            console.print(f"    [bold red]![/bold red]  [red]{clean}[/red]")
+
+        elif "[WARNING]" in insight:
+            clean = insight.replace("[WARNING] ", "")
+            console.print(
+                f"    [yellow]![/yellow]  [yellow]{clean}[/yellow]",
+            )
+
+        elif "[INFO]" in insight:
+            clean = insight.replace("[INFO] ", "")
+            console.print(f"    [green]+[/green]  [green]{clean}[/green]")
+
+        else:
+            console.print(f"    [dim]-[/dim]  {insight}")
+
+    console.print()
+
+
+def _seconds_to_human(seconds: int) -> str:
+    """Convert seconds to a compact human-readable string."""
+    if seconds >= 86400:
+        days = seconds // 86400
+        return f"{days}d"
+    if seconds >= 3600:
+        hours = seconds // 3600
+        return f"{hours}h"
+    if seconds >= 60:
+        minutes = seconds // 60
+        return f"{minutes}m"
+    return f"{seconds}s"
+
+
+# ---------------------------------------------------------------------------
 # File save confirmation
 # ---------------------------------------------------------------------------
 
@@ -348,3 +647,4 @@ def print_saved(filepath: str) -> None:
     line.append(f"  {filepath}", style="magenta")
     console.print(line, highlight=False)
     console.print()
+

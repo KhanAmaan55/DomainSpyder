@@ -29,6 +29,12 @@ from domainspyder.display.formatter import (
     console,
     print_dns_insights,
     print_dns_records,
+    print_info_insights,
+    print_info_nameservers,
+    print_info_soa,
+    print_info_ssl,
+    print_info_status,
+    print_info_summary,
     print_tech_summary,
     print_saved,
     print_security_score,
@@ -43,6 +49,7 @@ from domainspyder.scanners.dns_scanner import DNSScanner
 from domainspyder.scanners.subdomain_scanner import SubdomainScanner
 from domainspyder.scanners.port_scanner import PortScanner
 from domainspyder.scanners.tech_scanner import TechScanner
+from domainspyder.scanners.info_scanner import InfoScanner
 
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
@@ -128,6 +135,25 @@ def _build_parser() -> argparse.ArgumentParser:
     # ---- tech command --------------------------------------------------
     tech_cmd = subparsers.add_parser("tech", help="Technology detection")
     tech_cmd.add_argument("target", help="Target domain")
+
+    # ---- info command --------------------------------------------------
+    info_cmd = subparsers.add_parser("info", help="WHOIS + domain info")
+    info_cmd.add_argument("domain", help="Target domain")
+    info_cmd.add_argument(
+        "--brief",
+        action="store_true",
+        help="Show only key registration fields (skip SSL, SOA, status)",
+    )
+    info_cmd.add_argument(
+        "--no-ssl",
+        action="store_true",
+        help="Skip SSL certificate analysis",
+    )
+    info_cmd.add_argument(
+        "--no-whois",
+        action="store_true",
+        help="Skip WHOIS lookup (use RDAP + SSL + DNS only)",
+    )
 
     return parser
 
@@ -295,6 +321,62 @@ def _handle_tech(args: argparse.Namespace) -> None:
 
     print_tech_summary(data)
 
+
+def _handle_info(args: argparse.Namespace) -> None:
+    """Run domain info lookup and display results."""
+    print_banner()
+    print_target(args.domain, mode="info")
+
+    scanner = InfoScanner(debug=args.debug)
+
+    try:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            transient=True,
+        ) as progress:
+            progress.add_task("[cyan]Gathering domain info...", total=None)
+
+            data = scanner.scan(
+                args.domain,
+                skip_ssl=args.no_ssl,
+                skip_whois=args.no_whois,
+                brief=args.brief,
+            )
+    except KeyboardInterrupt:
+        console.print("\n  [yellow]Scan aborted by user (Ctrl+C).[/yellow]\n")
+        return
+
+    if data.get("error"):
+        console.print(f"  [red]Domain info failed:[/red] {data['error']}\n")
+        return
+
+    # Always show the main summary
+    print_info_summary(data)
+
+    if not args.brief:
+        # Name servers
+        ns = data.get("name_servers", [])
+        if ns:
+            print_info_nameservers(ns)
+
+        # Registration status (EPP codes)
+        status_explained = data.get("status_explained", [])
+        if status_explained:
+            print_info_status(status_explained)
+
+        # SSL certificate
+        print_info_ssl(data)
+
+        # DNS SOA record
+        print_info_soa(data)
+
+    # Insights (always shown)
+    insights = scanner.analyze(data)
+    if insights:
+        print_info_insights(insights)
+
+
 # ------------------------------------------------------------------
 # Entry point
 # ------------------------------------------------------------------
@@ -320,6 +402,7 @@ def main() -> None:
         "dns": _handle_dns,
         "ports": _handle_ports,
         "tech": _handle_tech,
+        "info": _handle_info,
     }
     handler = handlers.get(args.command)
     if handler:

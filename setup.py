@@ -12,6 +12,7 @@ setup(
         "httpx",
         "dnspython",
         "rich",
+        "python-whois",
     ],
     entry_points={
         "console_scripts": [

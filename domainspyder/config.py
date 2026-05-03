@@ -89,3 +89,49 @@ TOP_PORTS_100 = [
 
 TOP_PORTS_1000 = list(range(1, 1001))
 FULL_PORT_RANGE = list(range(1, 65536))
+
+# ---------------------------------------------------------------------------
+# WHOIS / Domain Info
+# ---------------------------------------------------------------------------
+
+WHOIS_TIMEOUT = 10
+RDAP_BASE_URL = "https://rdap.org/domain/"
+
+DOMAIN_AGE_THRESHOLDS = {
+    "new":         1,    # < 1 year
+    "established": 5,    # 1–5 years
+    "mature":      10,   # 5–10 years
+    "veteran":     10,   # 10+ years
+}
+
+EXPIRY_WARNING_DAYS = 90
+SSL_EXPIRY_WARNING_DAYS = 30
+
+WHOIS_PRIVACY_INDICATORS = [
+    "redacted for privacy",
+    "data protected",
+    "whoisguard",
+    "domains by proxy",
+    "privacy protect",
+    "contact privacy",
+    "withheld for privacy",
+    "statutory masking",
+]
+
+EPP_STATUS_MAP = {
+    "clientDeleteProhibited": "Domain cannot be deleted by registrar",
+    "clientTransferProhibited": "Domain cannot be transferred",
+    "clientUpdateProhibited": "Domain cannot be modified",
+    "serverDeleteProhibited": "Registry prevents deletion",
+    "serverTransferProhibited": "Registry prevents transfer",
+    "serverUpdateProhibited": "Registry prevents modification",
+    "clientHold": "Domain is suspended (not resolving)",
+    "serverHold": "Registry has suspended the domain",
+    "redemptionPeriod": "Domain is in redemption grace period",
+    "pendingDelete": "Domain is pending deletion",
+    "addPeriod": "Domain is within add grace period",
+    "renewPeriod": "Domain is within renew grace period",
+    "autoRenewPeriod": "Domain was auto-renewed",
+    "ok": "Domain is active and has no pending operations",
+    "active": "Domain is active and has no pending operations",
+}
