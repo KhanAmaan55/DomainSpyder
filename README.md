@@ -108,11 +108,16 @@ DomainSpyder is a **multi-command CLI framework** that helps you:
   - Script & stylesheet dependency extraction
   - `robots.txt` admin panel probing
   - DNS TXT hints (verification tags)
+  - Favicon hash fingerprinting
+  - `sitemap.xml` CMS cross-validation
+  - WordPress `/wp-json/` API probing
+  - Version extraction from signals
 
 - **Categorized results**:
   - Frontend, Backend, Server, CMS, and CDN categorization
   - Aggregated confidence scoring (`Low` to `High`)
   - Discovery of secondary libraries (Webpack, Next.js, etc.)
+  - Version number display when precise versions are found
 
 ---
 
@@ -496,11 +501,12 @@ domainspyder ports example.com --ports 22,80,443,3306 --deep --threads 75
 domainspyder tech yahoo.com
 ```
 
-Scans the target for web technologies using a multi-method pipeline and provides:
+Scans the target for web technologies using a multi-method pipeline and concurrent network probes. Provides:
 
 - **Framework & CMS identification** (Frontend, Backend, Server)
-- **Metadata extraction** (Confidence levels based on signal strength)
+- **Metadata & Version extraction** (Confidence levels and version numbers)
 - **Other linked tools/libraries** (Analytics, Webpack, UI libraries, etc.)
+- **Security header analysis** (HSTS, CSP, X-Frame-Options)
 
 **Example Output:**
 
@@ -520,6 +526,8 @@ Scans the target for web technologies using a multi-method pipeline and provides
   [CMS       ] Magento   ████░░░░░░ (Low)
 
   Other Technologies:
+    + AWS ALB
+    + D3.js
     + Next.js
     + Webpack
 ```
@@ -724,21 +732,36 @@ domainspyder/
 │   └── tech_scanner.py      # TechScanner class (multi-method web tech detection)
 │
 ├── sources/                 # Data sources for passive enumeration
-│   ├── __init__.py
-│   ├── base.py              # BaseSource abstract class
-│   ├── bruteforce.py        # DNS brute-force enumeration
-│   ├── crtsh.py             # Certificate Transparency (crt.sh)
-│   ├── hackertarget.py      # HackerTarget API
-│   ├── otx.py               # AlienVault OTX
-│   ├── rapiddns.py          # RapidDNS web scraper
-│   ├── wayback.py           # Internet Archive CDX
-│   └── info/                # Domain info data sources
-│       ├── __init__.py      # Info source registry
-│       ├── base_info_source.py  # BaseInfoSource abstract class
-│       ├── whois_source.py  # WHOIS protocol lookup
-│       ├── rdap_source.py   # RDAP protocol (RFC 9083 JSON)
-│       ├── ssl_source.py    # SSL certificate extraction (stdlib)
-│       └── dns_soa_source.py # DNS SOA record query
+│   ├── subdomains/          # Subdomain enumeration data sources
+│   │   ├── __init__.py
+│   │   ├── base.py          # BaseSource abstract class
+│   │   ├── bruteforce.py    # DNS brute-force enumeration
+│   │   ├── crtsh.py         # Certificate Transparency (crt.sh)
+│   │   ├── hackertarget.py  # HackerTarget API
+│   │   ├── otx.py           # AlienVault OTX
+│   │   ├── rapiddns.py      # RapidDNS web scraper
+│   │   └── wayback.py       # Internet Archive CDX
+│   ├── info/                # Domain info data sources
+│   │   ├── __init__.py      # Info source registry
+│   │   ├── base_info_source.py  # BaseInfoSource abstract class
+│   │   ├── whois_source.py  # WHOIS protocol lookup
+│   │   ├── rdap_source.py   # RDAP protocol (RFC 9083 JSON)
+│   │   ├── ssl_source.py    # SSL certificate extraction (stdlib)
+│   │   └── dns_soa_source.py # DNS SOA record query
+│   └── tech/                # Tech detection modular sources & probes
+│       ├── __init__.py
+│       ├── helpers.py       # Shared scoring utilities
+│       ├── http_detectors.py # Server, Backend, CDN detection
+│       ├── html_detectors.py # Frontend, CMS detection
+│       ├── asset_analysis.py # Scripts, stylesheets, meta tags
+│       ├── security_analysis.py # Security header audit
+│       ├── cookie_detector.py # Cookie-based tech detection
+│       ├── version_extractor.py # Version number extraction
+│       ├── dns_hints_probe.py # DNS TXT hint verification
+│       ├── robots_probe.py  # robots.txt hint probe
+│       ├── favicon_probe.py # Favicon hash fingerprinting
+│       ├── sitemap_probe.py # sitemap.xml CMS cross-validation
+│       └── wp_api_probe.py  # WordPress /wp-json/ REST API probe
 │
 └── display/                 # Output & formatting
     ├── __init__.py
@@ -791,9 +814,10 @@ DomainSpyder follows a **modular, layered design**:
 
 **TechScanner:**
 
-- Multi-method detection pipeline (HTTP headers/body, tags, scripts, `robots.txt`, DNS hints)
-- Categorized output with confidence scoring
-- Security header analysis
+- Orchestrates multi-method detection pipeline (HTTP headers/body, tags, scripts)
+- Runs concurrent network probes (`robots.txt`, DNS hints, favicons, sitemaps, `/wp-json/`)
+- Merges, scores, and categorizes results with confidence ratings
+- Extracts component versions and performs security header analysis
 
 **InfoScanner:**
 
@@ -808,6 +832,7 @@ DomainSpyder follows a **modular, layered design**:
 - Inherit from `BaseSource` for consistency
 - Each source implements independent HTTP/web requests
 - Domain info sources (`sources/info/`) inherit from `BaseInfoSource`
+- Tech detection sources (`sources/tech/`) split into stateless detectors and concurrent network probes
 - Info sources return dicts (not lists) for structured field merging
 
 ### **Utilities Layer** (`utils.py`)

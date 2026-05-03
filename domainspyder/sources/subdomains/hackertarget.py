@@ -5,7 +5,7 @@ import logging
 import requests
 
 from domainspyder.config import HEADERS, REQUEST_TIMEOUT
-from domainspyder.sources.base import BaseSource
+from domainspyder.sources.subdomains.base import BaseSource
 
 logger = logging.getLogger(__name__)
 

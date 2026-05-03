@@ -21,8 +21,8 @@ from domainspyder.config import (
     DEFAULT_BRUTE_MODE,
     DEFAULT_THREADS,
 )
-from domainspyder.sources import ALL_PASSIVE_SOURCES
-from domainspyder.sources.bruteforce import BruteForceSource
+from domainspyder.sources.subdomains import ALL_PASSIVE_SOURCES
+from domainspyder.sources.subdomains.bruteforce import BruteForceSource
 from domainspyder.utils import get_session, is_valid_subdomain
 
 logger = logging.getLogger(__name__)
