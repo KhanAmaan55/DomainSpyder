@@ -10,7 +10,7 @@ import time
 import dns.resolver
 
 from domainspyder.config import DNS_SERVERS, RESOLVER_POOL_SIZE
-from domainspyder.sources.base import BaseSource
+from domainspyder.sources.subdomains.base import BaseSource
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 logger = logging.getLogger(__name__)
