@@ -316,14 +316,18 @@ def print_tech_summary(data: dict[str, Any]) -> None:
         return
 
     category_width = max(len(item["category"]) for item in categories) + 2
-    name_width = max(len(item["name"]) for item in categories) + 2
-
+    name_strs = []
     for item in categories:
+        ver = item.get("version", "")
+        name_strs.append(f"{item['name']} {ver}" if ver else item["name"])
+    name_width = max(len(s) for s in name_strs) + 2
+
+    for item, name_str in zip(categories, name_strs):
         color = themes.score_color(item["score"])
         console.print(
             "  "
             f"[bold white][{item['category']:<{category_width}}][/bold white] "
-            f"[cyan]{item['name']:<{name_width}}[/cyan] "
+            f"[cyan]{name_str:<{name_width}}[/cyan] "
             f"[{color}]{item['meter']}[/{color}] "
             f"([{color}]{item['confidence']}[/{color}])"
         )
