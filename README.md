@@ -13,6 +13,7 @@ DomainSpyder is a **multi-command CLI framework** that helps you:
 - **Analyze DNS records** (comprehensive DNS data with security scoring)
 - **Scan exposed ports** (fast TCP connect scanning with service banners)
 - **Detect live services** (HTTP probing with metadata extraction)
+- **Gather domain intelligence** (WHOIS, RDAP, SSL certificate, DNS SOA)
 - **Intelligence gathering** (email setup analysis, DNS provider detection, security posture)
 
 ---
@@ -112,6 +113,28 @@ DomainSpyder is a **multi-command CLI framework** that helps you:
   - Frontend, Backend, Server, CMS, and CDN categorization
   - Aggregated confidence scoring (`Low` to `High`)
   - Discovery of secondary libraries (Webpack, Next.js, etc.)
+
+---
+
+### 📋 WHOIS & Domain Info
+
+- **Multi-source intelligence** (4 concurrent sources):
+  - WHOIS protocol (registrar, dates, status, org, DNSSEC)
+  - RDAP protocol (RFC 9083 structured JSON, cross-validation)
+  - SSL certificate (issuer, validity, SANs, chain depth)
+  - DNS SOA record (primary NS, admin, serial, zone parameters)
+
+- **Enrichment & analysis**:
+  - Domain age calculation with category labels (New/Established/Mature/Veteran)
+  - Expiry alerts (critical/warning thresholds)
+  - WHOIS privacy detection
+  - EPP status code explanations in plain English
+  - SSL certificate health monitoring
+
+- **Resilient design**:
+  - Graceful degradation when individual sources fail
+  - Priority-based merge (WHOIS > RDAP > SSL > DNS SOA)
+  - Only 1 new dependency (`python-whois`); other sources use existing libraries
 
 ---
 
@@ -503,12 +526,146 @@ Scans the target for web technologies using a multi-method pipeline and provides
 
 ---
 
+## 📋 WHOIS & Domain Info
+
+```bash
+domainspyder info example.com
+```
+
+Gathers domain intelligence from **4 concurrent sources** (WHOIS, RDAP, SSL, DNS SOA) and provides:
+
+- **Registration details** (registrar, creation/expiry/update dates, domain age)
+- **Name servers & EPP status codes** (with human-readable explanations)
+- **SSL certificate health** (issuer, validity, SAN list)
+- **DNS SOA record** (primary NS, admin contact, zone parameters)
+- **Domain insights** (expiry alerts, DNSSEC status, privacy detection)
+
+**Example Output:**
+
+```
+  TARGET   google.com  (info)
+
+
+  ────────────────────────────────────────────────────────────
+  DOMAIN INFORMATION
+  ────────────────────────────────────────────────────────────
+
+  Domain:       google.com
+  Registrar:    MarkMonitor, Inc.
+  Created:      1997-09-15  (28 years, 8 months — Veteran)
+  Expires:      2028-09-14  (864 days remaining)
+  Updated:      2019-09-09
+  Organization: Google LLC
+  Country:      US
+  DNSSEC:       unsigned
+
+  Sources:      dns_soa, rdap, ssl, whois
+  Duration:     2.874s
+
+
+  ────────────────────────────────────────────────────────────
+  NAME SERVERS
+  ────────────────────────────────────────────────────────────
+
+    +  ns1.google.com
+    +  ns2.google.com
+    +  ns3.google.com
+    +  ns4.google.com
+
+
+  ────────────────────────────────────────────────────────────
+  REGISTRATION STATUS
+  ────────────────────────────────────────────────────────────
+
+    ~  clientDeleteProhibited   — Domain cannot be deleted by registrar
+    ~  clientTransferProhibited — Domain cannot be transferred
+    ~  clientUpdateProhibited   — Domain cannot be modified
+    ~  serverDeleteProhibited   — Registry prevents deletion
+    ~  serverTransferProhibited — Registry prevents transfer
+    ~  serverUpdateProhibited   — Registry prevents modification
+
+
+  ────────────────────────────────────────────────────────────
+  SSL CERTIFICATE
+  ────────────────────────────────────────────────────────────
+
+  Issuer:       WR2  (Google Trust Services)
+  Subject:      *.google.com
+  Valid From:   2026-04-08
+  Valid Until:  2026-07-01  (58 days remaining)
+  SANs:         *.google.com, *.appengine.google.com, *.bdn.dev, ...
+                ... and 132 more
+
+
+  ────────────────────────────────────────────────────────────
+  DNS SOA RECORD
+  ────────────────────────────────────────────────────────────
+
+  Primary NS:   ns1.google.com
+  Admin:        dns-admin@google.com
+  Serial:       909143293
+  Refresh:      900s (15m)
+  Retry:        900s (15m)
+  Expire:       1800s (30m)
+  Min TTL:      60s (1m)
+
+
+  ────────────────────────────────────────────────────────────
+  DOMAIN INSIGHTS
+  ────────────────────────────────────────────────────────────
+
+    !  DNSSEC is not enabled
+    +  Domain is well-established (28 years, 8 months)
+    +  SSL certificate is valid
+    +  4/4 sources responded successfully
+```
+
+---
+
+### Info Command Options
+
+| Option       | Behavior                                                       |
+| ------------ | -------------------------------------------------------------- |
+| Default      | Runs all 4 sources (WHOIS, RDAP, SSL, DNS SOA) concurrently   |
+| `--brief`    | Show only key registration fields (skip SSL, SOA, status)      |
+| `--no-ssl`   | Skip SSL certificate analysis                                  |
+| `--no-whois` | Skip WHOIS lookup (use RDAP + SSL + DNS only)                  |
+
+### ⚙️ Examples
+
+**Brief overview (key fields only):**
+
+```bash
+domainspyder info example.com --brief
+```
+
+Quick summary showing only registrar, dates, and domain age.
+
+**Skip SSL analysis (faster):**
+
+```bash
+domainspyder info example.com --no-ssl
+```
+
+Useful behind firewalls or when SSL connection is blocked.
+
+**Use only RDAP + SSL + DNS (skip WHOIS):**
+
+```bash
+domainspyder info example.com --no-whois
+```
+
+Useful when WHOIS servers are rate-limiting or unreachable.
+
+---
+
 ### 🐞 Debug Mode (Global)
 
 ```bash
 domainspyder --debug subdomains example.com
 domainspyder --debug dns example.com
 domainspyder --debug ports example.com --top-100
+domainspyder --debug info example.com
 ```
 
 Enables detailed logging for troubleshooting and development.
@@ -536,6 +693,12 @@ domainspyder ports target.com --top-100
 # Discover applied web technologies
 domainspyder tech target.com
 
+# Gather WHOIS + domain intelligence
+domainspyder info target.com
+
+# Quick domain overview
+domainspyder info target.com --brief
+
 # Run with debug logging for troubleshooting
 domainspyder --debug dns target.com --raw-only
 ```
@@ -555,6 +718,7 @@ domainspyder/
 ├── scanners/                # Core scanning logic
 │   ├── __init__.py
 │   ├── dns_scanner.py       # DNSScanner class (resolution, analysis, security scoring)
+│   ├── info_scanner.py      # InfoScanner class (multi-source domain intelligence)
 │   ├── port_scanner.py      # PortScanner class (scanning, banner grabbing, analysis)
 │   ├── subdomain_scanner.py # SubdomainScanner class (passive + active enumeration)
 │   └── tech_scanner.py      # TechScanner class (multi-method web tech detection)
@@ -567,7 +731,14 @@ domainspyder/
 │   ├── hackertarget.py      # HackerTarget API
 │   ├── otx.py               # AlienVault OTX
 │   ├── rapiddns.py          # RapidDNS web scraper
-│   └── wayback.py           # Internet Archive CDX
+│   ├── wayback.py           # Internet Archive CDX
+│   └── info/                # Domain info data sources
+│       ├── __init__.py      # Info source registry
+│       ├── base_info_source.py  # BaseInfoSource abstract class
+│       ├── whois_source.py  # WHOIS protocol lookup
+│       ├── rdap_source.py   # RDAP protocol (RFC 9083 JSON)
+│       ├── ssl_source.py    # SSL certificate extraction (stdlib)
+│       └── dns_soa_source.py # DNS SOA record query
 │
 └── display/                 # Output & formatting
     ├── __init__.py
@@ -593,7 +764,7 @@ DomainSpyder follows a **modular, layered design**:
 ### **CLI Layer** (`cli.py`)
 
 - Argument parsing & validation
-- Command routing (subdomains, dns, ports)
+- Command routing (subdomains, dns, ports, tech, info)
 - User interface orchestration
 
 ### **Core Scanning Layer** (`scanners/`)
@@ -624,11 +795,20 @@ DomainSpyder follows a **modular, layered design**:
 - Categorized output with confidence scoring
 - Security header analysis
 
+**InfoScanner:**
+
+- Multi-source domain intelligence (WHOIS, RDAP, SSL, DNS SOA)
+- Concurrent source execution with graceful degradation
+- Priority-based result merging (WHOIS > RDAP > SSL > SOA)
+- Domain age, expiry alerts, privacy detection, EPP status explanations
+
 ### **Data Sources Layer** (`sources/`)
 
 - Pluggable passive enumeration sources
 - Inherit from `BaseSource` for consistency
 - Each source implements independent HTTP/web requests
+- Domain info sources (`sources/info/`) inherit from `BaseInfoSource`
+- Info sources return dicts (not lists) for structured field merging
 
 ### **Utilities Layer** (`utils.py`)
 
