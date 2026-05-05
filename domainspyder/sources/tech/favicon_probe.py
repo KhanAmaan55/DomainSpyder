@@ -22,9 +22,13 @@ logger = logging.getLogger(__name__)
 
 def probe_favicon(base_url: str) -> list[dict[str, Any]]:
     """
-    Fetch /favicon.ico and match its hash against known platforms.
-
-    Returns a list of category dicts for matched platforms.
+    Identify known platforms by hashing the /favicon.ico served from the provided base URL.
+    
+    Parameters:
+        base_url (str): Base URL or origin used to construct the "/favicon.ico" request.
+    
+    Returns:
+        list[dict[str, Any]]: A list containing a single match dictionary when the favicon's MD5 hash is found in the known-hash database, or an empty list otherwise. The match dictionary contains the keys: "name", "score", "confidence", "meter", and "category".
     """
     parsed = urlparse(base_url)
     favicon_url = urlunparse((parsed.scheme, parsed.netloc, "/favicon.ico", "", "", ""))

@@ -82,10 +82,28 @@ class TechScanner:
     # ------------------------------------------------------------------
 
     def _log(self, level: int, phase: str, msg: str, *args: Any) -> None:
+        """
+        Log a message prefixed with the scanner's target and phase.
+        
+        Parameters:
+            level (int): Logging level as accepted by the module logger (e.g., logging.INFO).
+            phase (str): Short identifier for the current phase used in the log prefix.
+            msg (str): Message format string.
+            *args (Any): Optional format arguments for `msg`.
+        """
         prefix = f"[tech:{self._target}] {phase} — "
         logger.log(level, prefix + msg, *args)
 
     def _check_cancelled(self, phase: str) -> bool:
+        """
+        Check whether the current scan has been cancelled and log a skipped message for the given phase.
+        
+        Parameters:
+        	phase (str): Phase name used in the log message when the scan is skipped.
+        
+        Returns:
+        	True if the scanner has been cancelled and the phase was skipped, False otherwise.
+        """
         if self._cancelled:
             self._log(logging.INFO, phase, "Skipped (scan cancelled)")
             return True
@@ -96,7 +114,24 @@ class TechScanner:
     # ------------------------------------------------------------------
 
     def scan(self, target: str) -> dict[str, Any]:
-        """Run multi-source technology detection and return results."""
+        """
+        Perform a multi-phase technology scan of the given target and return detected findings.
+        
+        Parameters:
+            target (str): The host or URL to scan. If no scheme is provided, both "https://" and "http://" variants are attempted.
+        
+        Returns:
+            dict[str, Any]: A result dictionary containing:
+                - "target": the original target string
+                - "url": the final URL used for the scan
+                - "status": HTTP status code from the fetch
+                - "categories": list of detected technology categories (each a dict with keys such as "name", "score", "confidence", "category", and optionally "version")
+                - "other": sorted list of additional detected technology strings
+                - optional "meta_generator": raw generator value extracted from meta tags
+                - optional "security_headers": detected security-related header details
+                - optional "dns_hints": list of DNS-derived hints
+                - optional "versions": mapping of technology name to extracted version string
+        """
         self._target = target
         self._cancelled = False
         urls = self._normalize_targets(target)
@@ -300,7 +335,20 @@ class TechScanner:
         base_url: str,
         categories: list[dict[str, Any]],
     ) -> tuple[list[str], list[dict[str, Any]], list[str]]:
-        """Run network probes concurrently and collect results."""
+        """
+        Coordinate concurrent network probes (DNS, robots.txt, favicon, sitemap, and optionally WordPress API) for a target and merge their findings.
+        
+        Parameters:
+            target (str): Original scan target (used for DNS probe).
+            base_url (str): Resolved base URL of the site (used for URL-scoped probes).
+            categories (list[dict[str, Any]]): Current detected categories used to decide conditional probes (e.g., WordPress API).
+        
+        Returns:
+            tuple[list[str], list[dict[str, Any]], list[str]]: A tuple of
+                - `dns_hints`: list of DNS-derived hints (strings),
+                - `probe_categories`: list of discovered category dictionaries from probes (e.g., CMS hints, favicon/sitemap findings),
+                - `probe_other`: list of additional technology hints (strings), such as plugins or other miscellaneous findings.
+        """
         dns_hints: list[str] = []
         probe_categories: list[dict[str, Any]] = []
         probe_other: list[str] = []
@@ -370,7 +418,15 @@ class TechScanner:
         categories: list[dict[str, Any]],
         cms_name: str,
     ) -> None:
-        """Boost an existing CMS category or add a new one."""
+        """
+        Increase the score of an existing CMS category entry or append a new CMS entry to the list.
+        
+        If a category with name equal to `cms_name` exists, its `score` is increased by 2 (capped at 10), its `confidence` is updated using `confidence_label(score)`, and its `meter` string is updated to visually reflect the score. If no such entry exists, a new CMS category dictionary is appended with `score` set to 8, `confidence` set to "High", `meter` set to "████████░░", and `category` set to "CMS". The `categories` list is mutated in place.
+        
+        Parameters:
+            categories (list[dict[str, Any]]): Mutable list of category dictionaries to update.
+            cms_name (str): Name of the CMS to boost or add.
+        """
         existing = [c for c in categories if c["name"] == cms_name]
         if existing:
             entry = existing[0]
@@ -395,7 +451,18 @@ class TechScanner:
         target: str,
         urls: list[str],
     ) -> httpx.Response | None:
-        """Try each URL candidate, handling redirects and SSL errors."""
+        """
+        Attempt candidate URLs in order and return the first successful HTTP response, using redirect and SSL-fallback strategies.
+        
+        Tries each URL from `urls` until a response is obtained or the scanner is cancelled. For 3xx redirects, if the Location header points to an HTTPS URL the function attempts a follow-up request to that location. On recognized SSL-related errors it retries the request with TLS verification disabled and redirects enabled. The method logs outcomes and returns the first obtained `httpx.Response` or `None` if all attempts fail.
+        
+        Parameters:
+            target (str): Original target string (used for log prefixes).
+            urls (list[str]): Candidate URLs to try (e.g., ["https://example", "http://example"]).
+        
+        Returns:
+            httpx.Response | None: The first successful response object, or `None` if no request succeeded.
+        """
         last_error: str | None = None
         response: httpx.Response | None = None
 
@@ -471,6 +538,22 @@ class TechScanner:
         *,
         error: str | None = None,
     ) -> dict[str, Any]:
+        """
+        Construct a minimal scan result dictionary containing the provided target and URL with empty detection outputs.
+        
+        Parameters:
+            target (str): The original scan target string.
+            url (str): The resolved/requested base URL for the scan.
+            error (str | None): Optional error message to include in the result.
+        
+        Returns:
+            dict[str, Any]: Result dictionary with keys:
+                - "target": the provided target
+                - "url": the provided url
+                - "categories": empty list for detected categories
+                - "other": empty list for miscellaneous findings
+                - "error": included only if `error` is provided
+        """
         result: dict[str, Any] = {
             "target": target,
             "url": url,
@@ -483,6 +566,15 @@ class TechScanner:
 
     @staticmethod
     def _normalize_targets(target: str) -> list[str]:
+        """
+        Produce normalized HTTP(S) candidate URLs for a scan target.
+        
+        Parameters:
+            target (str): A hostname or full URL. If `target` already starts with `http://` or `https://`, it is treated as a full URL.
+        
+        Returns:
+            list[str]: A list containing the input URL if a scheme was present, otherwise a two-item list with `https://{target}` first and `http://{target}` second.
+        """
         if target.startswith(("http://", "https://")):
             return [target]
         return [f"https://{target}", f"http://{target}"]

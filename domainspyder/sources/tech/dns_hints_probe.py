@@ -29,7 +29,15 @@ _VERIFICATION_PATTERNS: list[tuple[str, str]] = [
 
 
 def probe_dns_hints(target: str) -> list[str]:
-    """Resolve TXT records for domain verification signals."""
+    """
+    Extract a domain from `target`, resolve its DNS TXT records, and detect verification/technology hints.
+    
+    Parameters:
+        target (str): A domain, hostname, or URL; the function extracts the domain portion (after the last `//`, before the first `/`, and before the first `:`).
+    
+    Returns:
+        list[str]: De-duplicated list of human-readable verification labels found by case-insensitive substring matching against the domain's TXT records. Returns an empty list if the TXT lookup fails.
+    """
     domain = target.split("//")[-1].split("/")[0].split(":")[0]
     logger.debug("DNS hints: resolving TXT for %s", domain)
 

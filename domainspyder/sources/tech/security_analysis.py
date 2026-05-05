@@ -9,7 +9,22 @@ logger = logging.getLogger(__name__)
 
 
 def detect_security_headers(headers: dict[str, str]) -> dict[str, Any]:
-    """Audit security-related response headers."""
+    """
+    Analyze a mapping of HTTP response headers and report presence and selected properties of common security headers.
+    
+    Parameters:
+        headers (dict[str, str]): Mapping of response header names to their string values.
+    
+    Returns:
+        dict[str, Any]: A dictionary with these keys:
+            - "hsts": {"present": bool, "value": str}
+            - "csp": {"present": bool, "length": int}
+            - "x_frame_options": {"present": bool, "value": str}
+            - "x_content_type_options": {"present": bool, "value": str}
+            - "referrer_policy": {"present": bool, "value": str}
+            - "permissions_policy": {"present": bool}
+        Each entry indicates whether the header was present and includes the header value or its length where applicable.
+    """
     findings: dict[str, Any] = {}
     normalized = {k.lower(): v for k, v in headers.items()}
 
