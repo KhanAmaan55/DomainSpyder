@@ -45,7 +45,7 @@ def probe_sitemap(base_url: str) -> list[dict[str, Any]]:
         return []
 
     text = resp.text.lower()
-    if not text or "<urlset" not in text and "<sitemapindex" not in text:
+    if not text or ("<urlset" not in text and "<sitemapindex" not in text):
         logger.debug("Sitemap probe: not a valid sitemap XML")
         return []
 
