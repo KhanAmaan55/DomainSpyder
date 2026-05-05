@@ -37,10 +37,12 @@ _GENERATOR_MAP: dict[str, str] = {
 
 def detect_from_meta_tags(html: str) -> tuple[str | None, str | None]:
     """
-    Parse ``<meta name="generator">`` from HTML.
-
-    Returns ``(raw_generator_string, matched_cms_name)`` or
-    ``(None, None)`` if no generator tag was found.
+    Extract the content of a <meta name="generator"> tag and, if possible, map it to a canonical CMS/framework name.
+    
+    Searches the HTML for a generator meta tag (attribute order-insensitive). If found, returns a tuple containing the raw generator string and a canonical name when a known keyword is present in the generator content.
+    
+    Returns:
+        tuple[str | None, str | None]: (raw_generator_string, matched_cms_name) where `matched_cms_name` is the canonical name if a known keyword was detected in the generator content; returns (None, None) if no generator meta tag is present.
     """
     match = re.search(
         r'<meta[^>]+name=["\']generator["\'][^>]+content=["\']([^"\']+)["\']',
@@ -100,7 +102,15 @@ _SCRIPT_PATTERNS: list[tuple[str, str]] = [
 
 
 def detect_from_script_sources(scripts: list[str]) -> list[str]:
-    """Detect bundlers, frameworks, and libraries from script src URLs."""
+    """
+    Detect bundlers, frameworks, and libraries from a list of script `src` URLs.
+    
+    Parameters:
+        scripts (list[str]): Script `src` URLs to scan (each URL or path as a string).
+    
+    Returns:
+        list[str]: Ordered list of detected technology labels. Labels may repeat if multiple matching patterns are found; returns an empty list when no matches are found.
+    """
     if not scripts:
         return []
 
@@ -140,7 +150,15 @@ _CSS_PATTERNS: list[tuple[str, str]] = [
 
 
 def detect_from_stylesheets(stylesheets: list[str]) -> list[str]:
-    """Detect UI libraries from stylesheet hrefs."""
+    """
+    Detect UI/CSS libraries referenced by stylesheet hrefs.
+    
+    Parameters:
+        stylesheets (list[str]): List of stylesheet href URLs or paths to examine.
+    
+    Returns:
+        list[str]: Detected technology labels (each label appears at most once) in detection order.
+    """
     if not stylesheets:
         return []
 
@@ -160,7 +178,16 @@ def detect_from_stylesheets(stylesheets: list[str]) -> list[str]:
 # ------------------------------------------------------------------
 
 def detect_other(headers: dict[str, str], body: str) -> list[str]:
-    """Detect secondary tools that don't fit core categories."""
+    """
+    Detects third-party frameworks, tools, and libraries by scanning HTTP response headers and the HTML response body.
+    
+    Parameters:
+        headers (dict[str, str]): HTTP response headers (case-sensitive keys as received).
+        body (str): HTML response body and any inlined/script content.
+    
+    Returns:
+        list[str]: Sorted list of unique technology labels discovered (e.g., "Next.js", "Google Analytics", "Stripe").
+    """
     found: set[str] = set()
 
     x_powered = headers.get("x-powered-by", "").lower()

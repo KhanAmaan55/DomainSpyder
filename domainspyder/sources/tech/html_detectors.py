@@ -29,7 +29,19 @@ def detect_frontend(
     script_blob: str = "",
     strong_platforms: set[str] | None = None,
 ) -> list[dict[str, Any]]:
-    """Detect frontend SPA frameworks from HTML content (pre-lowercased)."""
+    """
+    Detect frontend Single-Page Application frameworks by scanning HTML and optional script content.
+    
+    Scans the provided HTML body (expected to be lowercased) and an optional script_blob for framework-specific signals to build scored candidate detections for React, Angular, Vue, Svelte, Astro, and Ionic. When strong_platforms is provided, reduces scores for several framework candidates to account for hosted-platform suppression. The function returns finalized, ranked detection candidates produced by the detector pipeline.
+    
+    Parameters:
+        body (str): HTML content to scan; should be pre-lowercased for accurate matching.
+        script_blob (str): Optional concatenated script/text to check for additional asset/module markers.
+        strong_platforms (set[str] | None): Optional set of hosted platform names that will suppress framework scores when present.
+    
+    Returns:
+        list[dict[str, Any]]: Ordered list of candidate dictionaries with detection metadata (score, signals, and related fields) as produced by the detector pipeline.
+    """
     strong_platforms = strong_platforms or set()
 
     candidates = {
@@ -132,7 +144,16 @@ def detect_cms(
     html: str,
     headers: dict[str, str] | None = None,
 ) -> list[dict[str, Any]]:
-    """Detect CMS / website-builder platforms."""
+    """
+    Identify CMS and hosted website-builder platforms from HTML and optional HTTP headers.
+    
+    Parameters:
+        html (str): HTML document to scan (will be lowercased internally).
+        headers (dict[str, str] | None): Optional HTTP headers to include in detection.
+    
+    Returns:
+        list[dict[str, Any]]: Candidate dictionaries describing detected platforms (including score and signal counts), ordered by descending confidence.
+    """
     body = html.lower()
     headers = headers or {}
     hdr_blob = header_blob(*headers.values())
