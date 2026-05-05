@@ -21,9 +21,15 @@ def extract_versions(
     meta_generator: str | None,
 ) -> dict[str, str]:
     """
-    Extract version numbers from all available signals.
-
-    Returns ``{"React": "18.2.0", "nginx": "1.25.3", ...}``.
+    Extract version numbers from provided signals and collect them into a mapping.
+    
+    Scans the optional meta generator string, HTTP headers, script URLs, and HTML body for known technology/version patterns and aggregates the first-found version for each technology into a dictionary.
+    
+    Parameters:
+        meta_generator (str | None): Optional generator/meta tag content to parse for known CMS or static-site generator versions.
+    
+    Returns:
+        dict[str, str]: Mapping from technology name (e.g., "React", "nginx") to the extracted version string; empty if no versions were found.
     """
     versions: dict[str, str] = {}
 
@@ -48,7 +54,13 @@ def _extract_generator_version(
     generator: str,
     versions: dict[str, str],
 ) -> None:
-    """Extract version from meta generator string like 'WordPress 6.5.3'."""
+    """
+    Extracts a technology version from a meta generator string and records it in the provided versions mapping.
+    
+    Parameters:
+        generator (str): Meta generator string to parse (e.g., "WordPress 6.5.3").
+        versions (dict[str, str]): Mutable mapping to populate with technology name -> version. The function adds the first matching technology and its version (trailing periods removed) and returns immediately after a successful match.
+    """
     # Common pattern: "Name Version" or "Name/Version"
     patterns = [
         (r"wordpress\s+([\d.]+)", "WordPress"),
@@ -78,7 +90,19 @@ def _extract_header_versions(
     headers: dict[str, str],
     versions: dict[str, str],
 ) -> None:
-    """Extract versions from Server and X-Powered-By headers."""
+    """
+    Extract technology version numbers from HTTP headers and add them to `versions`.
+    
+    This inspects Server, X-Powered-By and related headers for known product/version patterns
+    (e.g., nginx, Apache, IIS, LiteSpeed, Caddy, PHP, Express, ASP.NET) and, on match,
+    inserts technology -> version into `versions` without overwriting existing entries.
+    
+    Parameters:
+        headers (dict[str, str]): Mapping of header names to values. Header keys are expected
+            to be in lower-case (e.g., "server", "x-powered-by", "x-aspnet-version").
+        versions (dict[str, str]): Mutable mapping to populate with extracted technology versions;
+            existing keys in this dict will not be changed.
+    """
     _header_patterns = [
         ("server", r"nginx/([\d.]+)", "nginx"),
         ("server", r"apache/([\d.]+)", "Apache"),
@@ -108,7 +132,15 @@ def _extract_script_versions(
     scripts: list[str],
     versions: dict[str, str],
 ) -> None:
-    """Extract versions from script src URLs."""
+    """
+    Extracts technology version numbers from a list of script source URLs and records them into the provided versions mapping.
+    
+    Scans the concatenated script URLs for known library/framework version patterns (e.g., React, Vue, jQuery, Bootstrap, Angular, etc.) and, for each match, stores the captured version string (with any trailing period removed) under the corresponding human-readable technology name in `versions`. Existing entries in `versions` are not overwritten.
+    
+    Parameters:
+        scripts (list[str]): List of script `src` values or URLs to scan for version substrings.
+        versions (dict[str, str]): Mutable mapping to populate with detected technologies and their versions.
+    """
     _script_version_patterns = [
         (r"react[@/]([\d.]+)", "React"),
         (r"react-dom[@/]([\d.]+)", "React"),
@@ -142,7 +174,15 @@ def _extract_body_versions(
     body: str,
     versions: dict[str, str],
 ) -> None:
-    """Extract versions from HTML body patterns."""
+    """
+    Extract technology versions from HTML body text and populate the provided mapping.
+    
+    Scans the HTML body for known version markers (Angular, React, jQuery, Bootstrap, Vue) and, for each match not already present in `versions`, stores the captured version string (with trailing periods removed) under the technology name.
+    
+    Parameters:
+        body (str): HTML body text to scan for version markers.
+        versions (dict[str, str]): Mutable mapping to populate with technology -> version; existing keys are preserved.
+    """
     _body_patterns = [
         (r'ng-version="([\d.]+)"', "Angular"),
         (r'data-reactroot.*react@([\d.]+)', "React"),

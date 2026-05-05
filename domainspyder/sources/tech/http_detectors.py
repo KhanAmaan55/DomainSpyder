@@ -26,7 +26,15 @@ logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------
 
 def detect_server(headers: dict[str, str]) -> list[dict[str, Any]]:
-    """Detect the web server from response headers."""
+    """
+    Detect the likely web server from HTTP response headers.
+    
+    Parameters:
+        headers (dict[str, str]): Response headers (keys expected lower/upper-case agnostic).
+    
+    Returns:
+        list[dict[str, Any]]: Ranked list of candidate server dictionaries with scoring metadata.
+    """
     server_val = headers.get("server", "").lower()
     x_powered = headers.get("x-powered-by", "").lower()
 
@@ -66,7 +74,18 @@ def detect_backend(
     headers: dict[str, str],
     cookies: dict[str, str],
 ) -> list[dict[str, Any]]:
-    """Detect backend language/framework via headers and cookies."""
+    """
+    Infer the most likely backend language or framework from HTTP response headers and cookies.
+    
+    This function examines header values (e.g., `X-Powered-By`, `Server`, `Set-Cookie`) and cookie names to build and score candidate backends, then returns a ranked list.
+    
+    Parameters:
+        headers (dict[str, str]): Response headers (header names and their values).
+        cookies (dict[str, str]): Cookie names mapped to their values.
+    
+    Returns:
+        list[dict[str, Any]]: Ranked candidate dictionaries describing possible backends (e.g., name, score, metadata).
+    """
     x_powered = headers.get("x-powered-by", "").lower()
     server_val = headers.get("server", "").lower()
     set_cookie = headers.get("set-cookie", "").lower()
@@ -144,7 +163,15 @@ def detect_backend(
 # ------------------------------------------------------------------
 
 def detect_cdn(headers: dict[str, str]) -> list[dict[str, Any]]:
-    """Detect CDN / edge network providers from response headers."""
+    """
+    Infer likely CDN or edge providers from HTTP response headers and return ranked candidates.
+    
+    Parameters:
+        headers (dict[str, str]): HTTP response headers; header names are typically lowercased (values may be any case).
+    
+    Returns:
+        list[dict[str, Any]]: A ranked list of candidate CDN/edge providers with associated scoring metadata.
+    """
     candidates = {
         name: new_candidate()
         for name in [

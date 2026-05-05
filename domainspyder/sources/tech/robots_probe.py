@@ -30,9 +30,17 @@ def probe_robots_txt(
     base_url: str,
 ) -> dict[str, list[dict[str, Any]]]:
     """
-    Fetch /robots.txt and return CMS/tool hints.
-
-    Returns ``{"cms_hints": [...], "other_hints": [...]}``.
+    Probe the target site's /robots.txt for known CMS and admin/tool indicators.
+    
+    Builds a /robots.txt URL from `base_url`, fetches and scans its contents for known substrings, and returns any detected hints grouped by type.
+    
+    Parameters:
+        base_url (str): Base URL (including scheme and host) used to construct the /robots.txt location.
+    
+    Returns:
+        dict: A dictionary with two keys:
+            - "cms_hints" (list[dict]): Detected CMS hints; each entry contains `name`, `score`, `confidence`, `meter`, and `category`.
+            - "other_hints" (list[str]): Detected non-CMS/tool names (uncategorized matches).
     """
     parsed = urlparse(base_url)
     robots_url = urlunparse((parsed.scheme, parsed.netloc, "/robots.txt", "", "", ""))

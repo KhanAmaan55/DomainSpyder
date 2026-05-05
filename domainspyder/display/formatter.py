@@ -300,7 +300,26 @@ def _color_port_state(state: str) -> str:
 # ---------------------------------------------------------------------------
 
 def print_tech_summary(data: dict[str, Any]) -> None:
-    """Render technology detection results."""
+    """
+    Render a formatted summary of detected web technologies for a target domain.
+    
+    Parameters:
+        data (dict): A mapping containing technology detection results with the following keys:
+            - target (str): The scanned domain or host.
+            - url (str, optional): The URL where detections were made.
+            - status (int, optional): HTTP status code to display alongside the target.
+            - categories (list[dict]): List of detected technology entries. Each entry should contain:
+                - category (str): Technology category label (e.g., "Framework").
+                - name (str): Technology name.
+                - version (str, optional): Detected version to display with the name.
+                - score (int|float): Numerical score used to derive display color.
+                - meter (str): Visual meter string representing detection strength.
+                - confidence (int|float): Confidence percentage or value to display.
+            - other (list[str], optional): Additional technologies to list under "Other Technologies".
+    
+    This function prints a human-readable, column-aligned summary of the technologies (including name+version,
+    category, meter, and confidence) and an optional "Other Technologies" section. It produces no return value.
+    """
     _section_header("TECHNOLOGY DETECTION")
 
     console.print(f"  Target: [cyan]{data['target']}[/cyan]")

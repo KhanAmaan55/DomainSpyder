@@ -39,10 +39,17 @@ _NAMESPACE_MAP: dict[str, str] = {
 
 def probe_wp_api(base_url: str) -> dict[str, Any] | None:
     """
-    Probe /wp-json/ to confirm WordPress and discover plugins.
-
-    Returns a dict with ``{"confirmed": True, "plugins": [...]}``
-    or ``None`` if the endpoint is unavailable.
+    Probe the target's /wp-json/ REST endpoint to confirm a WordPress site and identify likely plugins.
+    
+    Parameters:
+        base_url (str): The target site's base URL (scheme and host are used to construct the /wp-json/ endpoint).
+    
+    Returns:
+        result (dict[str, Any] | None): If WordPress is detected, a dictionary containing:
+            - "confirmed": True
+            - "plugins": a list of detected plugin/component names (may be empty)
+            - "site_name": the site name from the REST API or an empty string.
+        Returns None if the endpoint is unavailable, not a valid JSON REST response, or does not contain WP namespaces.
     """
     parsed = urlparse(base_url)
     wp_url = urlunparse((parsed.scheme, parsed.netloc, "/wp-json/", "", "", ""))
