@@ -18,7 +18,7 @@ class WaybackSource(BaseSource):
         return "wayback"
 
     def fetch(self, domain: str) -> list[str]:
-        url = f"http://web.archive.org/cdx/search/cdx?url=*.{domain}&output=json"
+        url = f"https://web.archive.org/cdx/search/cdx?url=*.{domain}&output=json"
         subdomains: set[str] = set()
 
         response = requests.get(url, timeout=REQUEST_TIMEOUT, headers=HEADERS)

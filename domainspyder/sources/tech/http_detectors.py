@@ -28,7 +28,6 @@ logger = logging.getLogger(__name__)
 def detect_server(headers: dict[str, str]) -> list[dict[str, Any]]:
     """Detect the web server from response headers."""
     server_val = headers.get("server", "").lower()
-    x_powered = headers.get("x-powered-by", "").lower()
 
     candidates = {
         name: new_candidate()
