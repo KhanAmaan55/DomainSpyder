@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 
 import dns.resolver
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,8 @@ def probe_dns_hints(target: str) -> list[str]:
     Returns:
         list[str]: De-duplicated list of human-readable verification labels found by case-insensitive substring matching against the domain's TXT records. Returns an empty list if the TXT lookup fails.
     """
-    domain = target.split("//")[-1].split("/")[0].split(":")[0]
+    parsed = urlparse(target if "://" in target else f"https://{target}")
+    domain = parsed.hostname or target
     logger.debug("DNS hints: resolving TXT for %s", domain)
 
     try:

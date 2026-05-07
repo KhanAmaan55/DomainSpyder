@@ -151,7 +151,7 @@ def detect_backend(
     # Go
     if any(t in blob for t in ["go ", "golang", "gin-gonic", "gorilla", "echo"]):
         boost(candidates["Go"], 2, 6)
-    if server_val in ("", "go") or "go/" in server_val:
+    if server_val == "go" or "go/" in server_val:
         boost(candidates["Go"], 1, 3)
 
     return finalize_all(candidates)
