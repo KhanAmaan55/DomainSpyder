@@ -28,7 +28,7 @@ _ROBOTS_HINTS: list[tuple[str, str, str]] = [
 
 def probe_robots_txt(
     base_url: str,
-) -> dict[str, list[dict[str, Any]]]:
+) -> dict[str, list[Any]]:
     """
     Probe the target site's /robots.txt for known CMS and admin/tool indicators.
     
@@ -54,7 +54,7 @@ def probe_robots_txt(
             verify=False,
         ) as client:
             resp = client.get(robots_url)
-    except Exception as exc:
+    except httpx.RequestError as exc:
         logger.debug("robots.txt probe: fetch failed: %s", exc)
         return {"cms_hints": [], "other_hints": []}
 
