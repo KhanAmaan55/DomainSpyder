@@ -47,7 +47,7 @@ def probe_sitemap(base_url: str) -> list[dict[str, Any]]:
             verify=False,
         ) as client:
             resp = client.get(sitemap_url)
-    except Exception as exc:
+    except httpx.RequestError as exc:
         logger.debug("Sitemap probe: fetch failed: %s", exc)
         return []
 

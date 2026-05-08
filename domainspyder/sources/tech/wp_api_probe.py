@@ -63,7 +63,7 @@ def probe_wp_api(base_url: str) -> dict[str, Any] | None:
             verify=False,
         ) as client:
             resp = client.get(wp_url)
-    except Exception as exc:
+    except httpx.RequestError as exc:
         logger.debug("WP API probe: fetch failed: %s", exc)
         return None
 
@@ -73,7 +73,7 @@ def probe_wp_api(base_url: str) -> dict[str, Any] | None:
 
     try:
         data = resp.json()
-    except Exception:
+    except ValueError:
         logger.debug("WP API probe: response is not JSON")
         return None
 

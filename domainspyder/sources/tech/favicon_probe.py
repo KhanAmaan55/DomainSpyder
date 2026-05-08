@@ -42,7 +42,7 @@ def probe_favicon(base_url: str) -> list[dict[str, Any]]:
             verify=False,
         ) as client:
             resp = client.get(favicon_url)
-    except Exception as exc:
+    except httpx.RequestError as exc:
         logger.debug("Favicon probe: fetch failed: %s", exc)
         return []
 
