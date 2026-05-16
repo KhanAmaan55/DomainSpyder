@@ -115,8 +115,10 @@ def _extract_header_versions(
         ("x-aspnet-version", r"([\d.]+)", "ASP.NET"),
     ]
 
+    lowercased_headers = {k.lower(): v for k, v in headers.items()}
+
     for header_key, pattern, name in _header_patterns:
-        value = headers.get(header_key, "")
+        value = lowercased_headers.get(header_key, "")
         if not value:
             continue
         match = re.search(pattern, value, re.IGNORECASE)
