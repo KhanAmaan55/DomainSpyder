@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import logging
 import warnings
+from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor
 
 from domainspyder.config import (
@@ -382,10 +383,33 @@ def _handle_info(args: argparse.Namespace) -> None:
 # ------------------------------------------------------------------
 
 
+def clean_target(target: str) -> str:
+    """Extract domain from various inputs like http://www.example.com, www.example.com, example.com"""
+    if not target:
+        return target
+    
+    if "://" not in target:
+        target = "http://" + target
+        
+    parsed = urlparse(target)
+    domain = parsed.netloc or parsed.path
+    
+    if domain.startswith("www."):
+        domain = domain[4:]
+        
+    return domain.split(":")[0]
+
+
 def main() -> None:
     """CLI entry point invoked by the ``domainspyder`` console script."""
     parser = _build_parser()
     args = parser.parse_args()
+
+    # Clean the target/domain inputs
+    if hasattr(args, 'domain') and args.domain:
+        args.domain = clean_target(args.domain)
+    if hasattr(args, 'target') and args.target:
+        args.target = clean_target(args.target)
 
     # Configure logging
     if args.debug:
