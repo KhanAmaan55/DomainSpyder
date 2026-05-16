@@ -34,7 +34,7 @@ def probe_dns_hints(target: str) -> list[str]:
     Extract a domain from `target`, resolve its DNS TXT records, and detect verification/technology hints.
     
     Parameters:
-        target (str): A domain, hostname, or URL; the function extracts the domain portion (after the last `//`, before the first `/`, and before the first `:`).
+        target (str): A domain, hostname, or URL; the function parses the input using urlparse to extract the hostname.
     
     Returns:
         list[str]: De-duplicated list of human-readable verification labels found by case-insensitive substring matching against the domain's TXT records. Returns an empty list if the TXT lookup fails.

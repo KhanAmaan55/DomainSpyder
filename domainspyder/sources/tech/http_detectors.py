@@ -35,6 +35,7 @@ def detect_server(headers: dict[str, str]) -> list[dict[str, Any]]:
     Returns:
         list[dict[str, Any]]: Ranked list of candidate server dictionaries with scoring metadata.
     """
+    headers = {k.lower(): v for k, v in headers.items()}
     server_val = headers.get("server", "").lower()
 
     candidates = {
@@ -85,6 +86,9 @@ def detect_backend(
     Returns:
         list[dict[str, Any]]: Ranked candidate dictionaries describing possible backends (e.g., name, score, metadata).
     """
+    headers = {k.lower(): v for k, v in headers.items()}
+    cookies = {k.lower(): v for k, v in cookies.items()}
+
     x_powered = headers.get("x-powered-by", "").lower()
     server_val = headers.get("server", "").lower()
     set_cookie = headers.get("set-cookie", "").lower()
@@ -140,8 +144,10 @@ def detect_backend(
 
     # ASP.NET / .NET Core
     if any(t in blob for t in [
-        "asp.net", "aspnetcore", ".net", "aspxerrorpath", "webmatrix",
+        "asp.net", "aspnetcore", "aspxerrorpath", "webmatrix",
     ]):
+        boost(candidates["ASP.NET"], 2, 8)
+    if ".net" in x_powered or ".net" in server_val:
         boost(candidates["ASP.NET"], 2, 8)
     if "asp.net_sessionid" in cookies or ".aspxauth" in cookies:
         boost(candidates["ASP.NET"], 1, 3)
@@ -178,6 +184,8 @@ def detect_cdn(headers: dict[str, str]) -> list[dict[str, Any]]:
             "Akamai", "Azure CDN", "Google Cloud", "BunnyCDN", "Netlify",
         ]
     }
+
+    headers = {k.lower(): v for k, v in headers.items()}
 
     server_val = headers.get("server", "").lower()
     via_val = headers.get("via", "").lower()

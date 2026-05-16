@@ -36,6 +36,10 @@ def probe_sitemap(base_url: str) -> list[dict[str, Any]]:
             - `category`: fixed value `"CMS"`
     """
     parsed = urlparse(base_url)
+    if not parsed.scheme or not parsed.netloc:
+        base_url = f"http://{base_url}"
+        parsed = urlparse(base_url)
+    
     sitemap_url = urlunparse((parsed.scheme, parsed.netloc, "/sitemap.xml", "", "", ""))
     logger.debug("Sitemap probe: fetching %s", sitemap_url)
 

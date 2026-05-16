@@ -78,8 +78,8 @@ def probe_wp_api(base_url: str) -> dict[str, Any] | None:
         return None
 
     # Validate it's a real WP REST API response
-    if "namespaces" not in data:
-        logger.debug("WP API probe: no 'namespaces' key, not WP")
+    if not isinstance(data, dict) or "namespaces" not in data:
+        logger.debug("WP API probe: invalid JSON shape or no 'namespaces' key, not WP")
         return None
 
     namespaces = data.get("namespaces", [])
