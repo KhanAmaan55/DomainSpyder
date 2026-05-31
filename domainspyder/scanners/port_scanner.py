@@ -11,6 +11,7 @@ import logging
 import socket
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
 from typing import Any
 
 from domainspyder.config import (
@@ -113,8 +114,10 @@ class PortScanner:
 
         duration = round(time.time() - start_time, 3)
 
-        return {
+        result = {
+            "command": "ports",
             "target": target,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "ip": ip,
             "provider": provider,
             "reverse_dns": reverse_dns,
@@ -124,6 +127,8 @@ class PortScanner:
             "closed_count": closed_count,
             "duration": duration,
         }
+        result["insights"] = self.analyze(result)
+        return result
 
     # ------------------------------------------------------------------
 

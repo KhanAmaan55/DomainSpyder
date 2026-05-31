@@ -12,6 +12,7 @@ import logging
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
 from typing import Any
 
 from domainspyder.config import (
@@ -54,13 +55,12 @@ class SubdomainScanner:
         alive: bool = False,
         brutemode: str = DEFAULT_BRUTE_MODE,
         brute_only: bool = False,
-    ) -> list[Any]:
+    ) -> dict[str, Any]:
         """
         Run subdomain enumeration and return results.
 
-        Returns a ``list[str]`` of subdomains, or—when *alive* is
-        ``True``—a ``list[dict]`` with keys ``subdomain``, ``status``,
-        ``server``, and ``title``.
+        Returns a structured dictionary containing all discovered
+        subdomains and, when requested, alive HTTP probe results.
         """
         if brute_only:
             brute_subs = self._run_bruteforce(
@@ -84,10 +84,17 @@ class SubdomainScanner:
 
         logger.debug("Final unique: %d", len(unique))
 
-        if alive:
-            return self._check_alive(unique, threads)
+        subdomains = sorted(unique)
+        alive_results = self._check_alive(unique, threads) if alive else []
 
-        return sorted(unique)
+        return {
+            "command": "subdomains",
+            "target": domain,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "count": len(subdomains),
+            "subdomains": subdomains,
+            "alive": alive_results,
+        }
 
     def _run_bruteforce(
         self,

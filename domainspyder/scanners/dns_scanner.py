@@ -8,9 +8,10 @@ for a target domain.
 from __future__ import annotations
 
 import logging
-from typing import Optional
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
 from threading import Lock
+from typing import Any, Optional
 
 import dns.resolver
 from domainspyder.config import DNS_SERVERS, RECORD_TYPES
@@ -26,7 +27,8 @@ class DNSScanner:
     Usage::
 
         scanner = DNSScanner(debug=True)
-        records  = scanner.scan("example.com")
+        report   = scanner.scan("example.com")
+        records  = report["records"]
         insights = scanner.analyze(records, "example.com")
         security = scanner.calculate_security(records, "example.com")
     """
@@ -38,9 +40,35 @@ class DNSScanner:
         self._lifetime = lifetime
         self._cache_lock = Lock()
 
+    def scan(self, domain: str) -> dict[str, Any]:
+        """Return a structured DNS scan report for *domain*."""
+        records = self.resolve_records(domain)
+        analysis: list[str] = []
+        security: dict[str, Any] = {}
 
+        if records:
+            data = self.preprocess(records)
+            with ThreadPoolExecutor() as executor:
+                analysis_future = executor.submit(self.analyze, records, domain, data)
+                security_future = executor.submit(
+                    self.calculate_security,
+                    records,
+                    domain,
+                    data,
+                )
+                analysis = analysis_future.result()
+                security = security_future.result()
 
-    def scan(self, domain: str) -> dict[str, list[str]]:
+        return {
+            "command": "dns",
+            "target": domain,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "records": records,
+            "analysis": analysis,
+            "security_score": security,
+        }
+
+    def resolve_records(self, domain: str) -> dict[str, list[str]]:
         """Resolve all configured record types for *domain* (parallel)."""
         output: dict[str, list[str]] = {}
 

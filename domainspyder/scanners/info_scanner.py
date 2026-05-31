@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from domainspyder.config import (
@@ -75,7 +75,18 @@ class InfoScanner:
 
         if not source_data:
             logger.error("InfoScanner: all sources failed for %s", domain)
-            return {"domain": domain, "error": "All sources failed"}
+            return {
+                "command": "info",
+                "target": domain,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "domain": domain,
+                "error": "All sources failed",
+                "whois": {},
+                "rdap": {},
+                "ssl": {},
+                "soa": {},
+                "insights": [],
+            }
 
         logger.debug(
             "InfoScanner: %d sources returned data",
@@ -89,6 +100,13 @@ class InfoScanner:
         self._enrich_data(merged)
 
         # Phase 4: Track metadata
+        merged["command"] = "info"
+        merged["target"] = domain
+        merged["timestamp"] = datetime.now(timezone.utc).isoformat()
+        merged["whois"] = self._build_whois_section(merged, source_data.get("whois", {}))
+        merged["rdap"] = self._build_whois_section(merged, source_data.get("rdap", {}))
+        merged["ssl"] = self._prefixed_section(merged, "ssl_")
+        merged["soa"] = self._prefixed_section(merged, "soa_")
         merged["sources_used"] = sorted(source_data.keys())
         merged["sources_failed"] = sorted(
             set(self._get_source_names(skip_ssl, skip_whois))
@@ -96,6 +114,7 @@ class InfoScanner:
         )
         merged["duration"] = round(time.time() - start_time, 3)
         merged["brief"] = brief
+        merged["insights"] = self.analyze(merged)
 
         logger.debug(
             "InfoScanner: scan complete in %.3fs — sources: %s, failed: %s",
@@ -301,6 +320,40 @@ class InfoScanner:
             "Merge: final result has %d fields", len(merged),
         )
         return merged
+
+    @staticmethod
+    def _build_whois_section(
+        merged: dict[str, Any],
+        source_data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Build a registration summary section from merged and source fields."""
+        keys = [
+            "domain_name",
+            "registrar",
+            "creation_date",
+            "expiration_date",
+            "updated_date",
+            "name_servers",
+            "status",
+            "registrant",
+            "dnssec",
+        ]
+        section: dict[str, Any] = {}
+        for key in keys:
+            if key in source_data:
+                section[key] = source_data[key]
+            elif key in merged:
+                section[key] = merged[key]
+        return section
+
+    @staticmethod
+    def _prefixed_section(data: dict[str, Any], prefix: str) -> dict[str, Any]:
+        """Return a section containing keys with *prefix* stripped."""
+        return {
+            key.removeprefix(prefix): value
+            for key, value in data.items()
+            if key.startswith(prefix)
+        }
 
     # ------------------------------------------------------------------
     # Enrichment (computed fields)

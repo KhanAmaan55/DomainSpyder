@@ -11,7 +11,7 @@ from __future__ import annotations
 import argparse
 import logging
 import warnings
-from concurrent.futures import ThreadPoolExecutor
+from typing import Any
 
 from domainspyder.config import (
     APP_NAME,
@@ -45,6 +45,7 @@ from domainspyder.display.formatter import (
     print_port_summary,
     print_port_insights
 )
+from domainspyder.reporting import ExportError, save_report
 from domainspyder.scanners.dns_scanner import DNSScanner
 from domainspyder.scanners.subdomain_scanner import SubdomainScanner
 from domainspyder.scanners.port_scanner import PortScanner
@@ -75,9 +76,17 @@ def _build_parser() -> argparse.ArgumentParser:
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    def add_output_argument(command_parser: argparse.ArgumentParser) -> None:
+        """Add the shared structured report output option."""
+        command_parser.add_argument(
+            "--output",
+            help="Write a structured report to a file (.json, .html)",
+        )
+
     # ---- subdomains command ------------------------------------------
     sub = subparsers.add_parser("subdomains", help="Subdomain enumeration")
     sub.add_argument("domain", help="Target domain")
+    add_output_argument(sub)
     sub.add_argument(
         "--wordlist",
         default=DEFAULT_WORDLIST,
@@ -110,6 +119,7 @@ def _build_parser() -> argparse.ArgumentParser:
     # ---- dns command -------------------------------------------------
     dns_cmd = subparsers.add_parser("dns", help="DNS record enumeration")
     dns_cmd.add_argument("domain", help="Target domain")
+    add_output_argument(dns_cmd)
     dns_cmd.add_argument(
         "--raw-only",
         action="store_true",
@@ -119,6 +129,7 @@ def _build_parser() -> argparse.ArgumentParser:
     # ---- ports command -------------------------------------------------
     ports_cmd = subparsers.add_parser("ports", help="Port scanning")
     ports_cmd.add_argument("target", help="Target domain")
+    add_output_argument(ports_cmd)
     ports_cmd.add_argument("--ports", help="Custom ports (comma-separated)")
     ports_cmd.add_argument("--top-100", action="store_true")
     ports_cmd.add_argument("--top-1000", action="store_true")
@@ -135,10 +146,12 @@ def _build_parser() -> argparse.ArgumentParser:
     # ---- tech command --------------------------------------------------
     tech_cmd = subparsers.add_parser("tech", help="Technology detection")
     tech_cmd.add_argument("target", help="Target domain")
+    add_output_argument(tech_cmd)
 
     # ---- info command --------------------------------------------------
     info_cmd = subparsers.add_parser("info", help="WHOIS + domain info")
     info_cmd.add_argument("domain", help="Target domain")
+    add_output_argument(info_cmd)
     info_cmd.add_argument(
         "--brief",
         action="store_true",
@@ -163,6 +176,20 @@ def _build_parser() -> argparse.ArgumentParser:
 # ------------------------------------------------------------------
 
 
+def _maybe_save_report(data: dict[str, Any], output_path: str | None) -> None:
+    """Save a structured report if the user requested one."""
+    if not output_path:
+        return
+
+    try:
+        saved_path = save_report(data, output_path)
+    except ExportError as exc:
+        console.print(f"  [red]Report export failed:[/red] {exc}\n")
+        return
+
+    console.print(f"  [green]✓[/green] Report saved: {saved_path}\n")
+
+
 def _handle_subdomains(args: argparse.Namespace) -> None:
     """Run subdomain enumeration and display results."""
     print_banner()
@@ -184,7 +211,7 @@ def _handle_subdomains(args: argparse.Namespace) -> None:
     ) as progress:
         progress.add_task("[cyan]Enumerating subdomains...", total=None)
 
-        results = scanner.scan(
+        data = scanner.scan(
             args.domain,
             args.wordlist,
             args.threads,
@@ -192,6 +219,8 @@ def _handle_subdomains(args: argparse.Namespace) -> None:
             brutemode=args.brutemode,
             brute_only=args.brute_only,
         )
+
+    results = data["alive"] if args.alive else data["subdomains"]
 
     print_subdomain_table(results, alive=args.alive)
     print_total(len(results))
@@ -207,6 +236,8 @@ def _handle_subdomains(args: argparse.Namespace) -> None:
                 fh.write("\n".join(results))
         print_saved(args.save)
 
+    _maybe_save_report(data, args.output)
+
 
 def _handle_dns(args: argparse.Namespace) -> None:
     """Run DNS enumeration and display results."""
@@ -221,26 +252,22 @@ def _handle_dns(args: argparse.Namespace) -> None:
         transient=True,
     ) as progress:
         progress.add_task("[cyan]Resolving DNS records...", total=None)
-        records = scanner.scan(args.domain)
-        with ThreadPoolExecutor() as executor:
-            data = scanner.preprocess(records)
-        
-            f1 = executor.submit(scanner.analyze, records, args.domain, data)
-            f2 = executor.submit(scanner.calculate_security, records, args.domain, data)
-        
-            if not args.raw_only:
-                insights = f1.result()
-                security = f2.result()
-            
+        data = scanner.scan(args.domain)
+
+    records = data["records"]
 
     if not records:
         console.print("  [red]No DNS records found.[/red]\n")
+        _maybe_save_report(data, args.output)
         return
 
     print_dns_records(records)
     if not args.raw_only:
-        print_dns_insights(insights)
-        print_security_score(security)
+        print_dns_insights(data["analysis"])
+        print_security_score(data["security_score"])
+
+    _maybe_save_report(data, args.output)
+
 
 def _handle_ports(args: argparse.Namespace) -> None:
     """Run port scanning and display results."""
@@ -286,14 +313,16 @@ def _handle_ports(args: argparse.Namespace) -> None:
 
     if not data or not data.get("open_ports"):
         console.print("  [red]No open ports found.[/red]\n")
+        if data:
+            _maybe_save_report(data, args.output)
         return
 
-    insights = scanner.analyze(data)
-    
     print_port_summary(data)
     print_port_table(data["open_ports"])
-    if insights:
-        print_port_insights(insights)
+    if data.get("insights"):
+        print_port_insights(data["insights"])
+
+    _maybe_save_report(data, args.output)
 
 
 def _handle_tech(args: argparse.Namespace) -> None:
@@ -317,9 +346,11 @@ def _handle_tech(args: argparse.Namespace) -> None:
 
     if data.get("error"):
         console.print(f"  [red]Technology scan failed:[/red] {data['error']}\n")
+        _maybe_save_report(data, args.output)
         return
 
     print_tech_summary(data)
+    _maybe_save_report(data, args.output)
 
 
 def _handle_info(args: argparse.Namespace) -> None:
@@ -349,6 +380,7 @@ def _handle_info(args: argparse.Namespace) -> None:
 
     if data.get("error"):
         console.print(f"  [red]Domain info failed:[/red] {data['error']}\n")
+        _maybe_save_report(data, args.output)
         return
 
     # Always show the main summary
@@ -372,9 +404,10 @@ def _handle_info(args: argparse.Namespace) -> None:
         print_info_soa(data)
 
     # Insights (always shown)
-    insights = scanner.analyze(data)
-    if insights:
-        print_info_insights(insights)
+    if data.get("insights"):
+        print_info_insights(data["insights"])
+
+    _maybe_save_report(data, args.output)
 
 
 # ------------------------------------------------------------------
