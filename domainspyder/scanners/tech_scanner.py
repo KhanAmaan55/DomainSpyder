@@ -19,6 +19,7 @@ import logging
 import re
 import ssl
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
 from typing import Any
 
 import httpx
@@ -308,9 +309,12 @@ class TechScanner:
         )
 
         result: dict[str, Any] = {
+            "command": "tech",
             "target": target,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "url": base_url,
             "status": response.status_code,
+            "technologies": categories,
             "categories": categories,
             "other": sorted(set(other)),
         }
@@ -555,8 +559,11 @@ class TechScanner:
                 - "error": included only if `error` is provided
         """
         result: dict[str, Any] = {
+            "command": "tech",
             "target": target,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "url": url,
+            "technologies": [],
             "categories": [],
             "other": [],
         }
