@@ -17,4 +17,4 @@ class JsonExporter:
             **report_metadata(),
             "data": data,
         }
-        return json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
+        return json.dumps(payload, indent=2, ensure_ascii=False, default=str) + "\n"

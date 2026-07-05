@@ -55,8 +55,14 @@ def save_report(
     path = Path(output_path).expanduser()
     exporter = get_exporter(path, html_theme=html_theme)
     try:
+        rendered = exporter.render(data)
+    except ExportError:
+        raise
+    except Exception as exc:
+        raise ExportError(f"Could not render report for {path}: {exc}") from exc
+    try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(exporter.render(data), encoding="utf-8")
+        path.write_text(rendered, encoding="utf-8")
     except OSError as exc:
         raise ExportError(f"Could not write report to {path}: {exc}") from exc
     return path
