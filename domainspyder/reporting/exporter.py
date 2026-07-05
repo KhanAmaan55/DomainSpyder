@@ -27,7 +27,7 @@ EXPORTERS: dict[str, type[ReportExporter]] = {
 }
 
 
-def get_exporter(path: str | Path) -> ReportExporter:
+def get_exporter(path: str | Path, *, html_theme: str = "light") -> ReportExporter:
     """Return an exporter instance selected by the output file extension."""
     suffix = Path(path).suffix.lower()
     exporter_cls = EXPORTERS.get(suffix)
@@ -37,13 +37,23 @@ def get_exporter(path: str | Path) -> ReportExporter:
             f"Unsupported report format '{suffix or '<none>'}'. "
             f"Supported formats: {supported}"
         )
+    if exporter_cls is HtmlExporter:
+        try:
+            return HtmlExporter(theme=html_theme)
+        except ValueError as exc:
+            raise ExportError(str(exc)) from exc
     return exporter_cls()
 
 
-def save_report(data: dict[str, Any], output_path: str | Path) -> Path:
+def save_report(
+    data: dict[str, Any],
+    output_path: str | Path,
+    *,
+    html_theme: str = "light",
+) -> Path:
     """Render *data* with the matching exporter and write it to *output_path*."""
     path = Path(output_path).expanduser()
-    exporter = get_exporter(path)
+    exporter = get_exporter(path, html_theme=html_theme)
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(exporter.render(data), encoding="utf-8")

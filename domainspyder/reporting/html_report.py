@@ -2,12 +2,31 @@
 
 from __future__ import annotations
 
+import base64
+import json
+from datetime import datetime
 from html import escape
+from pathlib import Path
 from typing import Any
 
 
+HTML_THEMES = ("light", "dark")
+
+
 class HtmlExporter:
-    """Render structured scan results as a self-contained HTML document."""
+    """Render structured scan results as a branded, self-contained HTML document."""
+
+    _logo_data_uri: str | None = None
+    _logo_loaded = False
+
+    def __init__(self, theme: str = "light") -> None:
+        normalized_theme = theme.strip().lower()
+        if normalized_theme not in HTML_THEMES:
+            supported = ", ".join(HTML_THEMES)
+            raise ValueError(
+                f"Unsupported HTML theme '{theme}'. Supported themes: {supported}"
+            )
+        self.theme = normalized_theme
 
     def render(self, data: dict[str, Any]) -> str:
         """Return a responsive standalone HTML report for *data*."""
@@ -17,6 +36,8 @@ class HtmlExporter:
         command = str(data.get("command", "scan")).title()
         target = str(data.get("target") or data.get("domain") or "-")
         generated_at = metadata["generated_at"]
+        generated_at_display = self._friendly_datetime(generated_at)
+        theme_label = f"{self.theme.title()} mode"
 
         return f"""<!doctype html>
 <html lang="en">
@@ -27,167 +48,539 @@ class HtmlExporter:
   <style>
     :root {{
       color-scheme: light;
-      --bg: #f6f8fb;
-      --panel: #ffffff;
-      --ink: #172033;
-      --muted: #667085;
-      --line: #d8dee8;
-      --brand: #075e73;
-      --brand-strong: #0a4455;
-      --accent: #2f7d68;
-      --warn: #a15c00;
-      --danger: #b42318;
+      --palette-purple: #5c39a2;
+      --palette-cloud: #f4f3f8;
+      --palette-ink: #0c182d;
+      --palette-lavender: #a190cb;
+      --palette-slate: #686f80;
+      --palette-midnight: #242054;
+      --palette-mist: #c9bfe1;
+      --palette-violet: #4123a2;
+
+      --page-bg: var(--palette-cloud);
+      --surface: #ffffff;
+      --surface-soft: rgba(244, 243, 248, 0.78);
+      --text: var(--palette-ink);
+      --muted: var(--palette-slate);
+      --line: rgba(201, 191, 225, 0.78);
+      --brand: var(--palette-purple);
+      --brand-strong: var(--palette-violet);
+      --brand-deep: var(--palette-midnight);
+      --accent: var(--palette-lavender);
+      --hero-text: #ffffff;
+      --hero-muted: rgba(244, 243, 248, 0.82);
+      --table-head: rgba(244, 243, 248, 0.92);
+      --table-hover: rgba(201, 191, 225, 0.18);
+      --shadow: 0 18px 45px rgba(12, 24, 45, 0.09);
+      --panel-shadow: 0 1px 2px rgba(12, 24, 45, 0.08);
     }}
+
+    body.theme-dark {{
+      color-scheme: dark;
+      --page-bg: var(--palette-ink);
+      --surface: #151a33;
+      --surface-soft: rgba(36, 32, 84, 0.68);
+      --text: var(--palette-cloud);
+      --muted: var(--palette-mist);
+      --line: rgba(201, 191, 225, 0.24);
+      --brand: var(--palette-lavender);
+      --brand-strong: var(--palette-purple);
+      --brand-deep: var(--palette-midnight);
+      --accent: var(--palette-mist);
+      --hero-text: var(--palette-cloud);
+      --hero-muted: rgba(244, 243, 248, 0.72);
+      --table-head: rgba(36, 32, 84, 0.78);
+      --table-hover: rgba(161, 144, 203, 0.12);
+      --shadow: 0 20px 50px rgba(0, 0, 0, 0.34);
+      --panel-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+    }}
+
     * {{ box-sizing: border-box; }}
+
+    html {{ scroll-behavior: smooth; }}
+
     body {{
       margin: 0;
-      background: var(--bg);
-      color: var(--ink);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        linear-gradient(180deg, rgba(201, 191, 225, 0.22), rgba(244, 243, 248, 0) 320px),
+        var(--page-bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system,
+        BlinkMacSystemFont, "Segoe UI", sans-serif;
       line-height: 1.5;
     }}
-    header {{
-      background: linear-gradient(135deg, var(--brand-strong), var(--brand));
-      color: #fff;
-      padding: 32px 24px;
+
+    body.theme-dark {{
+      background:
+        linear-gradient(180deg, rgba(92, 57, 162, 0.28), rgba(12, 24, 45, 0) 340px),
+        var(--page-bg);
     }}
-    main {{
-      width: min(1180px, calc(100% - 32px));
-      margin: 24px auto 48px;
-    }}
-    .header-inner {{
+
+    .report-shell {{
       width: min(1180px, calc(100% - 32px));
       margin: 0 auto;
     }}
-    .brand {{
-      margin: 0 0 8px;
-      font-size: clamp(28px, 5vw, 44px);
-      line-height: 1.05;
-      letter-spacing: 0;
+
+    .report-header {{
+      background:
+        linear-gradient(
+          135deg,
+          rgba(12, 24, 45, 0.98),
+          rgba(36, 32, 84, 0.96) 56%,
+          rgba(92, 57, 162, 0.96)
+        );
+      color: var(--hero-text);
+      border-bottom: 1px solid rgba(201, 191, 225, 0.26);
+      box-shadow: var(--shadow);
     }}
-    .subtitle, .meta {{
-      margin: 0;
-      color: rgba(255, 255, 255, 0.84);
+
+    .topbar {{
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 22px 0 10px;
     }}
-    .summary {{
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 14px;
-      margin-bottom: 22px;
+
+    .brand-lockup {{
+      display: inline-flex;
+      align-items: center;
+      min-width: 0;
+      padding: 8px 16px;
+      border-radius: 10px;
+      background: #ffffff;
+      box-shadow: 0 6px 18px rgba(12, 24, 45, 0.18);
     }}
-    .card, section {{
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      box-shadow: 0 1px 2px rgba(23, 32, 51, 0.04);
+
+    /* The logo has a transparent background, so a light chip lets the dark
+       "DOMAIN" wordmark read while the purple glow keeps its color. The asset
+       is a ~5:1 banner with transparent padding, so cover-crop the content
+       band (vertically centred at ~48%) rather than letterboxing it. */
+    .brand-logo {{
+      display: block;
+      width: min(232px, 52vw);
+      height: 46px;
+      object-fit: cover;
+      object-position: center 48%;
     }}
-    .card {{
-      padding: 16px;
-      min-height: 92px;
+
+    .brand-wordmark {{
+      display: inline-flex;
+      align-items: center;
+      min-height: 48px;
+      color: var(--hero-text);
+      font-size: 22px;
+      font-weight: 800;
     }}
-    .label {{
-      margin: 0 0 6px;
-      color: var(--muted);
-      font-size: 13px;
+
+    .theme-chip {{
+      flex: 0 0 auto;
+      border: 1px solid rgba(244, 243, 248, 0.36);
+      background: rgba(244, 243, 248, 0.11);
+      color: var(--hero-text);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0;
     }}
-    .value {{
+
+    .hero-grid {{
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
+      gap: 28px;
+      align-items: end;
+      padding: 18px 0 34px;
+    }}
+
+    .eyebrow {{
+      margin: 0 0 8px;
+      color: var(--hero-muted);
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }}
+
+    h1 {{
       margin: 0;
-      font-size: 24px;
+      font-size: clamp(34px, 5vw, 58px);
+      line-height: 1.02;
+      letter-spacing: 0;
+    }}
+
+    .target-line {{
+      margin: 14px 0 0;
+      color: var(--hero-muted);
+      font-size: clamp(16px, 2vw, 20px);
+      overflow-wrap: anywhere;
+    }}
+
+    .metadata {{
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1px;
+      margin: 0;
+      overflow: hidden;
+      border: 1px solid rgba(244, 243, 248, 0.22);
+      border-radius: 8px;
+      background: rgba(244, 243, 248, 0.16);
+    }}
+
+    .metadata div {{
+      display: grid;
+      grid-template-columns: 112px minmax(0, 1fr);
+      gap: 12px;
+      padding: 12px 14px;
+      background: rgba(12, 24, 45, 0.18);
+    }}
+
+    .metadata dt {{
+      color: var(--hero-muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }}
+
+    .metadata dd {{
+      margin: 0;
+      color: var(--hero-text);
+      font-size: 13px;
       font-weight: 700;
       overflow-wrap: anywhere;
     }}
-    section {{
-      padding: 18px;
+
+    main.report-shell {{
+      padding: 24px 0 48px;
+    }}
+
+    .summary-grid {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }}
+
+    .summary-card {{
+      min-height: 104px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--panel-shadow);
+    }}
+
+    .summary-label {{
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }}
+
+    .summary-value {{
+      margin: 0;
+      color: var(--text);
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 1.18;
+      overflow-wrap: anywhere;
+    }}
+
+    .report-section {{
       margin-top: 16px;
-      overflow-x: auto;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--panel-shadow);
     }}
+
+    .section-heading {{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }}
+
     h2 {{
-      margin: 0 0 14px;
+      margin: 0;
+      color: var(--text);
       font-size: 20px;
+      line-height: 1.2;
+      letter-spacing: 0;
     }}
+
+    h3 {{
+      margin: 18px 0 8px;
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.3;
+      letter-spacing: 0;
+    }}
+
+    .section-count {{
+      flex: 0 0 auto;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface-soft);
+      color: var(--brand);
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 800;
+    }}
+
+    .table-scroll {{
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+    }}
+
     table {{
       width: 100%;
+      min-width: 620px;
       border-collapse: collapse;
-      min-width: 520px;
     }}
+
     th, td {{
-      padding: 10px 12px;
+      padding: 11px 13px;
       border-bottom: 1px solid var(--line);
       text-align: left;
       vertical-align: top;
       font-size: 14px;
     }}
+
     th {{
       color: var(--muted);
+      background: var(--table-head);
       font-size: 12px;
+      font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0;
-      background: #f9fafc;
     }}
+
+    tbody tr:hover {{
+      background: var(--table-hover);
+    }}
+
+    tbody tr:last-child td {{
+      border-bottom: 0;
+    }}
+
+    td:first-child {{
+      color: var(--brand);
+      font-weight: 800;
+    }}
+
     code, pre {{
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     }}
+
     pre {{
       margin: 0;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
-      background: #f9fafc;
+      color: var(--text);
+      background: var(--surface-soft);
       border: 1px solid var(--line);
-      border-radius: 6px;
-      padding: 12px;
+      border-radius: 8px;
+      padding: 13px;
       font-size: 13px;
+      line-height: 1.55;
     }}
-    ul {{
-      margin: 0;
-      padding-left: 20px;
+
+    .inline-pre {{
+      max-height: 260px;
+      overflow: auto;
     }}
-    .score-wrap {{
+
+    .clean-list {{
       display: grid;
-      gap: 10px;
-      max-width: 420px;
+      gap: 8px;
+      margin: 0;
+      padding-left: 19px;
     }}
-    .score-bar {{
-      height: 14px;
-      background: #e9eef5;
+
+    .clean-list li {{
+      padding-left: 3px;
+    }}
+
+    .muted {{
+      color: var(--muted);
+    }}
+
+    .pill {{
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      border: 1px solid var(--line);
       border-radius: 999px;
-      overflow: hidden;
+      background: var(--surface-soft);
+      color: var(--brand);
+      padding: 2px 9px;
+      font-size: 12px;
+      font-weight: 800;
     }}
+
+    .score-layout {{
+      display: grid;
+      grid-template-columns: minmax(220px, 380px) minmax(0, 1fr);
+      gap: 22px;
+      align-items: start;
+    }}
+
+    .score-value {{
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 12px;
+    }}
+
+    .score-value strong {{
+      color: var(--brand);
+      font-size: 32px;
+      line-height: 1;
+    }}
+
+    .score-bar {{
+      height: 16px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: var(--surface-soft);
+      border: 1px solid var(--line);
+    }}
+
     .score-fill {{
       height: 100%;
       width: var(--score-width);
       background: var(--score-color);
     }}
-    .pill {{
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 999px;
-      background: #eef6f3;
-      color: var(--accent);
-      font-size: 12px;
-      font-weight: 700;
+
+    .score-notes {{
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
     }}
-    .muted {{ color: var(--muted); }}
-    .danger {{ color: var(--danger); }}
-    .warn {{ color: var(--warn); }}
+
+    details {{
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-soft);
+      overflow: hidden;
+    }}
+
+    summary {{
+      cursor: pointer;
+      padding: 12px 14px;
+      color: var(--brand);
+      font-weight: 800;
+    }}
+
+    details pre {{
+      border: 0;
+      border-top: 1px solid var(--line);
+      border-radius: 0;
+      background: transparent;
+    }}
+
+    @media (max-width: 820px) {{
+      .hero-grid,
+      .score-layout,
+      .score-notes {{
+        grid-template-columns: 1fr;
+      }}
+
+      .metadata {{
+        max-width: none;
+      }}
+    }}
+
     @media (max-width: 640px) {{
-      header {{ padding: 24px 16px; }}
-      main, .header-inner {{ width: calc(100% - 24px); }}
-      section {{ padding: 14px; }}
-      .value {{ font-size: 20px; }}
+      .report-shell {{
+        width: calc(100% - 24px);
+      }}
+
+      .topbar {{
+        align-items: stretch;
+        flex-direction: column;
+        gap: 10px;
+        padding-top: 16px;
+      }}
+
+      .brand-logo {{
+        width: min(196px, 66vw);
+        height: 40px;
+      }}
+
+      .theme-chip {{
+        width: fit-content;
+      }}
+
+      .hero-grid {{
+        gap: 18px;
+        padding: 8px 0 24px;
+      }}
+
+      .metadata div {{
+        grid-template-columns: 1fr;
+        gap: 3px;
+      }}
+
+      main.report-shell {{
+        padding-top: 16px;
+      }}
+
+      .summary-grid {{
+        grid-template-columns: 1fr;
+      }}
+
+      .summary-card,
+      .report-section {{
+        padding: 14px;
+      }}
+
+      .section-heading {{
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+      }}
+
+      .summary-value {{
+        font-size: 21px;
+      }}
     }}
   </style>
 </head>
-<body>
-  <header>
-    <div class="header-inner">
-      <h1 class="brand">DomainSpyder</h1>
-      <p class="subtitle">{escape(command)} report for {escape(target)}</p>
-      <p class="meta">Generated {escape(generated_at)} with DomainSpyder {escape(metadata["version"])}</p>
+<body class="theme-{escape(self.theme)}">
+  <header class="report-header">
+    <div class="report-shell">
+      <div class="topbar">
+        <div class="brand-lockup">{self._logo_markup()}</div>
+        <div class="theme-chip">{escape(theme_label)}</div>
+      </div>
+      <div class="hero-grid">
+        <div>
+          <p class="eyebrow">Structured scan export</p>
+          <h1>{escape(command)} Report</h1>
+          <p class="target-line">{escape(target)}</p>
+        </div>
+        <dl class="metadata">
+          <div>
+            <dt>Generated</dt>
+            <dd title="{escape(generated_at)}">{escape(generated_at_display)}</dd>
+          </div>
+          <div><dt>Tool</dt><dd>DomainSpyder {escape(metadata["version"])}</dd></div>
+          <div><dt>Command</dt><dd>{escape(str(data.get("command", "-")))}</dd></div>
+        </dl>
+      </div>
     </div>
   </header>
-  <main>
+  <main class="report-shell">
     {self._summary_cards(data)}
     {self._command_sections(data)}
     {self._raw_data(data)}
@@ -200,7 +593,7 @@ class HtmlExporter:
         cards = [
             ("Command", str(data.get("command", "-"))),
             ("Target", str(data.get("target") or data.get("domain") or "-")),
-            ("Scan Timestamp", str(data.get("timestamp", "-"))),
+            ("Scan Timestamp", self._friendly_datetime(str(data.get("timestamp", "-")))),
         ]
         command = data.get("command")
         if command == "subdomains":
@@ -212,20 +605,22 @@ class HtmlExporter:
             cards.append(("Security Score", self._score_text(data.get("security_score", {}))))
         elif command == "ports":
             cards.append(("Ports Scanned", str(data.get("ports_scanned", 0))))
-            cards.append(("Open Ports", str(data.get("open_count", len(data.get("open_ports", []))))))
+            open_count = data.get("open_count", len(data.get("open_ports", [])))
+            cards.append(("Open Ports", str(open_count)))
         elif command == "tech":
-            cards.append(("Technologies", str(len(data.get("technologies", data.get("categories", []))))))
+            tech_count = len(data.get("technologies", data.get("categories", [])))
+            cards.append(("Technologies", str(tech_count)))
             cards.append(("HTTP Status", str(data.get("status", "-"))))
         elif command == "info":
             cards.append(("Registrar", str(data.get("registrar", "-"))))
             cards.append(("Sources Used", str(len(data.get("sources_used", [])))))
 
         items = "\n".join(
-            f'<article class="card"><p class="label">{escape(label)}</p>'
-            f'<p class="value">{escape(value)}</p></article>'
+            f'<article class="summary-card"><p class="summary-label">{escape(label)}</p>'
+            f'<p class="summary-value">{escape(value)}</p></article>'
             for label, value in cards
         )
-        return f'<div class="summary">{items}</div>'
+        return f'<section class="summary-grid" aria-label="Report summary">{items}</section>'
 
     def _command_sections(self, data: dict[str, Any]) -> str:
         command = data.get("command")
@@ -286,7 +681,11 @@ class HtmlExporter:
             for item in techs
         ]
         return (
-            self._table("Detected Technologies", ["Category", "Name", "Version", "Confidence"], rows)
+            self._table(
+                "Detected Technologies",
+                ["Category", "Name", "Version", "Confidence"],
+                rows,
+            )
             + self._table_from_mapping("Security Headers", data.get("security_headers", {}))
             + self._list_section("Other Technologies", data.get("other", []))
         )
@@ -318,35 +717,56 @@ class HtmlExporter:
         ]
         return (
             self._table("Discovered Subdomains", ["#", "Subdomain"], sub_rows)
-            + self._table("Alive Subdomains", ["#", "Subdomain", "Status", "Server", "Title"], alive_rows)
+            + self._table(
+                "Alive Subdomains",
+                ["#", "Subdomain", "Status", "Server", "Title"],
+                alive_rows,
+            )
         )
 
     def _security_score(self, security: dict[str, Any]) -> str:
         if not security:
             return ""
-        score = int(security.get("score", 0))
+        try:
+            score = int(security.get("score", 0))
+        except (TypeError, ValueError):
+            score = 0
         score = max(0, min(10, score))
-        color = "#2f7d68" if score >= 8 else "#a15c00" if score >= 5 else "#b42318"
+        color = "#5c39a2" if score >= 8 else "#a190cb" if score >= 5 else "#4123a2"
         issues = self._list_html(security.get("issues", []))
         good = self._list_html(security.get("good", []))
-        return f"""<section>
-  <h2>Security Score</h2>
-  <div class="score-wrap">
-    <strong>{score}/10 <span class="muted">{escape(str(security.get("risk", "")))}</span></strong>
-    <div class="score-bar"><div class="score-fill" style="--score-width: {score * 10}%; --score-color: {color};"></div></div>
+        risk = escape(str(security.get("risk", "")))
+        return f"""<section class="report-section">
+  <div class="section-heading">
+    <h2>Security Score</h2>
+    <span class="section-count">{score}/10</span>
   </div>
-  <h3>Issues</h3>{issues}
-  <h3>Passed</h3>{good}
+  <div class="score-layout">
+    <div>
+      <div class="score-value"><strong>{score}/10</strong><span class="muted">{risk}</span></div>
+      <div class="score-bar">
+        <div class="score-fill" style="--score-width: {score * 10}%; --score-color: {color};"></div>
+      </div>
+    </div>
+    <div class="score-notes">
+      <div><h3>Issues</h3>{issues}</div>
+      <div><h3>Passed</h3>{good}</div>
+    </div>
+  </div>
 </section>"""
 
     def _raw_data(self, data: dict[str, Any]) -> str:
-        import json
-
-        return (
-            "<section><h2>Raw Structured Data</h2><pre>"
-            + escape(json.dumps(data, indent=2, ensure_ascii=False))
-            + "</pre></section>"
-        )
+        payload = escape(json.dumps(data, indent=2, ensure_ascii=False, default=str))
+        return f"""<section class="report-section raw-section">
+  <div class="section-heading">
+    <h2>Raw Structured Data</h2>
+    <span class="section-count">JSON</span>
+  </div>
+  <details>
+    <summary>View payload</summary>
+    <pre>{payload}</pre>
+  </details>
+</section>"""
 
     def _table(
         self,
@@ -355,34 +775,138 @@ class HtmlExporter:
         rows: list[tuple[Any, ...]],
     ) -> str:
         if not rows:
-            return f"<section><h2>{escape(title)}</h2><p class=\"muted\">No data found.</p></section>"
+            return (
+                f'<section class="report-section"><div class="section-heading">'
+                f"<h2>{escape(title)}</h2><span class=\"section-count\">0 rows</span></div>"
+                '<p class="muted">No data found.</p></section>'
+            )
+
         head = "".join(f"<th>{escape(header)}</th>" for header in headers)
         body = "".join(
-            "<tr>" + "".join(f"<td>{cell if self._is_html_cell(cell) else escape(str(cell))}</td>" for cell in row) + "</tr>"
+            "<tr>"
+            + "".join(f"<td>{self._cell_html(cell)}</td>" for cell in row)
+            + "</tr>"
             for row in rows
         )
-        return f"<section><h2>{escape(title)}</h2><table><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></section>"
+        return f"""<section class="report-section">
+  <div class="section-heading">
+    <h2>{escape(title)}</h2>
+    <span class="section-count">{len(rows)} rows</span>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr>{head}</tr></thead>
+      <tbody>{body}</tbody>
+    </table>
+  </div>
+</section>"""
 
     def _table_from_mapping(self, title: str, data: dict[str, Any]) -> str:
-        rows = [(self._humanize_key(key), self._format_value(value)) for key, value in data.items()]
+        rows = [
+            (self._humanize_key(key), self._format_value(value))
+            for key, value in data.items()
+        ]
         return self._table(title, ["Field", "Value"], rows)
 
     def _list_section(self, title: str, values: list[Any]) -> str:
-        return f"<section><h2>{escape(title)}</h2>{self._list_html(values)}</section>"
+        count = len(values) if values else 0
+        return f"""<section class="report-section">
+  <div class="section-heading">
+    <h2>{escape(title)}</h2>
+    <span class="section-count">{count} items</span>
+  </div>
+  {self._list_html(values)}
+</section>"""
 
     def _list_html(self, values: list[Any]) -> str:
         if not values:
             return '<p class="muted">No items found.</p>'
         items = "".join(f"<li>{escape(str(item))}</li>" for item in values)
-        return f"<ul>{items}</ul>"
+        return f'<ul class="clean-list">{items}</ul>'
+
+    def _cell_html(self, value: Any) -> str:
+        if self._is_html_cell(value):
+            return str(value)
+        return escape(str(value))
+
+    @classmethod
+    def _logo_markup(cls) -> str:
+        data_uri = cls._logo_uri()
+        if data_uri:
+            return f'<img class="brand-logo" src="{data_uri}" alt="DomainSpyder logo">'
+        return '<span class="brand-wordmark">DomainSpyder</span>'
+
+    @classmethod
+    def _logo_uri(cls) -> str | None:
+        if cls._logo_loaded:
+            return cls._logo_data_uri
+
+        project_root = Path(__file__).resolve().parents[2]
+        candidates = [
+            project_root / "assests" / "img" / "logo_no_bg_2.png",
+            project_root / "assets" / "img" / "logo_no_bg_2.png",
+            project_root / "assests" / "img" / "logo_no_bg_1.png",
+            project_root / "assets" / "img" / "logo_no_bg_1.png",
+            project_root / "assests" / "img" / "logo_2.png",
+            project_root / "assets" / "img" / "logo_2.png",
+            Path.cwd() / "assests" / "img" / "logo_no_bg_2.png",
+            Path.cwd() / "assets" / "img" / "logo_no_bg_2.png",
+            Path.cwd() / "assests" / "img" / "logo_no_bg_1.png",
+            Path.cwd() / "assets" / "img" / "logo_no_bg_1.png",
+            Path.cwd() / "assests" / "img" / "logo_2.png",
+            Path.cwd() / "assets" / "img" / "logo_2.png",
+        ]
+        for path in candidates:
+            try:
+                image = path.read_bytes()
+            except OSError:
+                continue
+            cls._logo_data_uri = (
+                "data:image/png;base64,"
+                + base64.b64encode(image).decode("ascii")
+            )
+            break
+
+        cls._logo_loaded = True
+        return cls._logo_data_uri
 
     @staticmethod
     def _format_value(value: Any) -> str:
+        if value is None:
+            return '<span class="muted">-</span>'
         if isinstance(value, (list, tuple, set)):
+            if not value:
+                return '<span class="muted">-</span>'
             return "<br>".join(escape(str(item)) for item in value)
         if isinstance(value, dict):
-            return "<pre>" + escape(str(value)) + "</pre>"
+            payload = escape(json.dumps(value, indent=2, ensure_ascii=False, default=str))
+            return f'<pre class="inline-pre">{payload}</pre>'
         return escape(str(value))
+
+    @staticmethod
+    def _friendly_datetime(value: str) -> str:
+        if not value or value == "-":
+            return "-"
+
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return value
+
+        # Render UTC timestamps in the reader's local time so "when was this
+        # generated" is immediately obvious without doing timezone math.
+        if parsed.tzinfo is not None:
+            parsed = parsed.astimezone()
+
+        hour = parsed.hour % 12 or 12
+        meridiem = "AM" if parsed.hour < 12 else "PM"
+        date_part = f"{parsed.strftime('%A')}, {parsed.strftime('%B')} {parsed.day}, {parsed.year}"
+        time_part = f"{hour}:{parsed.minute:02d} {meridiem}"
+
+        zone_name = parsed.tzname() if parsed.tzinfo is not None else ""
+        if zone_name:
+            return f"{date_part} at {time_part} {zone_name}"
+        return f"{date_part} at {time_part}"
 
     @staticmethod
     def _humanize_key(key: str) -> str:
@@ -396,4 +920,8 @@ class HtmlExporter:
 
     @staticmethod
     def _is_html_cell(value: Any) -> bool:
-        return isinstance(value, str) and ("<br>" in value or value.startswith("<pre>"))
+        return isinstance(value, str) and (
+            "<br>" in value
+            or value.startswith("<pre")
+            or value.startswith("<span")
+        )

@@ -187,6 +187,22 @@ pip install -e .
 
 ## ▶️ Usage
 
+### Structured Reports
+
+Every scan command supports structured export with `--output`.
+Use `.json` for raw data or `.html` for a branded, readable report.
+HTML reports support light and dark variants:
+
+```bash
+domainspyder dns example.com --output reports/dns-light.html --html-light
+domainspyder dns example.com --output reports/dns-dark.html --html-dark
+```
+
+HTML exports use the light theme by default. Use `--html-dark` when you want
+the dark report variant.
+
+---
+
 ### 🟢 Subdomain Enumeration (Default - Passive + Brute Force)
 
 ```bash
