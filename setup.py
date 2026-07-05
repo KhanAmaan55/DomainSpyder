@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="domainspyder",
-    version="0.7.0",
+    version="0.8.0",
     description="Domain Intelligence Framework",
     author="Amaan Khan",
     packages=find_packages(),
