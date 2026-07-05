@@ -82,6 +82,22 @@ def _build_parser() -> argparse.ArgumentParser:
             "--output",
             help="Write a structured report to a file (.json, .html)",
         )
+        html_theme = command_parser.add_mutually_exclusive_group()
+        html_theme.add_argument(
+            "--html-light",
+            action="store_const",
+            const="light",
+            dest="html_theme",
+            default="light",
+            help="Use the light theme for HTML reports (default)",
+        )
+        html_theme.add_argument(
+            "--html-dark",
+            action="store_const",
+            const="dark",
+            dest="html_theme",
+            help="Use the dark theme for HTML reports",
+        )
 
     # ---- subdomains command ------------------------------------------
     sub = subparsers.add_parser("subdomains", help="Subdomain enumeration")
@@ -176,13 +192,17 @@ def _build_parser() -> argparse.ArgumentParser:
 # ------------------------------------------------------------------
 
 
-def _maybe_save_report(data: dict[str, Any], output_path: str | None) -> None:
+def _maybe_save_report(
+    data: dict[str, Any],
+    output_path: str | None,
+    html_theme: str = "light",
+) -> None:
     """Save a structured report if the user requested one."""
     if not output_path:
         return
 
     try:
-        saved_path = save_report(data, output_path)
+        saved_path = save_report(data, output_path, html_theme=html_theme)
     except ExportError as exc:
         console.print(f"  [red]Report export failed:[/red] {exc}\n")
         return
@@ -236,7 +256,7 @@ def _handle_subdomains(args: argparse.Namespace) -> None:
                 fh.write("\n".join(results))
         print_saved(args.save)
 
-    _maybe_save_report(data, args.output)
+    _maybe_save_report(data, args.output, args.html_theme)
 
 
 def _handle_dns(args: argparse.Namespace) -> None:
@@ -258,7 +278,7 @@ def _handle_dns(args: argparse.Namespace) -> None:
 
     if not records:
         console.print("  [red]No DNS records found.[/red]\n")
-        _maybe_save_report(data, args.output)
+        _maybe_save_report(data, args.output, args.html_theme)
         return
 
     print_dns_records(records)
@@ -266,7 +286,7 @@ def _handle_dns(args: argparse.Namespace) -> None:
         print_dns_insights(data["analysis"])
         print_security_score(data["security_score"])
 
-    _maybe_save_report(data, args.output)
+    _maybe_save_report(data, args.output, args.html_theme)
 
 
 def _handle_ports(args: argparse.Namespace) -> None:
@@ -314,7 +334,7 @@ def _handle_ports(args: argparse.Namespace) -> None:
     if not data or not data.get("open_ports"):
         console.print("  [red]No open ports found.[/red]\n")
         if data:
-            _maybe_save_report(data, args.output)
+            _maybe_save_report(data, args.output, args.html_theme)
         return
 
     print_port_summary(data)
@@ -322,7 +342,7 @@ def _handle_ports(args: argparse.Namespace) -> None:
     if data.get("insights"):
         print_port_insights(data["insights"])
 
-    _maybe_save_report(data, args.output)
+    _maybe_save_report(data, args.output, args.html_theme)
 
 
 def _handle_tech(args: argparse.Namespace) -> None:
@@ -346,11 +366,11 @@ def _handle_tech(args: argparse.Namespace) -> None:
 
     if data.get("error"):
         console.print(f"  [red]Technology scan failed:[/red] {data['error']}\n")
-        _maybe_save_report(data, args.output)
+        _maybe_save_report(data, args.output, args.html_theme)
         return
 
     print_tech_summary(data)
-    _maybe_save_report(data, args.output)
+    _maybe_save_report(data, args.output, args.html_theme)
 
 
 def _handle_info(args: argparse.Namespace) -> None:
@@ -380,7 +400,7 @@ def _handle_info(args: argparse.Namespace) -> None:
 
     if data.get("error"):
         console.print(f"  [red]Domain info failed:[/red] {data['error']}\n")
-        _maybe_save_report(data, args.output)
+        _maybe_save_report(data, args.output, args.html_theme)
         return
 
     # Always show the main summary
@@ -407,7 +427,7 @@ def _handle_info(args: argparse.Namespace) -> None:
     if data.get("insights"):
         print_info_insights(data["insights"])
 
-    _maybe_save_report(data, args.output)
+    _maybe_save_report(data, args.output, args.html_theme)
 
 
 # ------------------------------------------------------------------
