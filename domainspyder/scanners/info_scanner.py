@@ -374,12 +374,15 @@ class InfoScanner:
             data["expiry"] = self._check_expiry(expiration)
             logger.debug("Enrich: expiry = %s", data["expiry"])
 
-        # Privacy detection
+        # Privacy detection. Copy the registrant before adding derived fields so
+        # the shared source object stays unmutated — otherwise `is_private` would
+        # leak into the WHOIS section while the RDAP section keeps the original.
         registrant = data.get("registrant", {})
         if registrant:
             is_private = self._detect_privacy(registrant)
-            registrant["is_private"] = is_private
-            data["registrant"] = registrant
+            enriched = dict(registrant)
+            enriched["is_private"] = is_private
+            data["registrant"] = enriched
             logger.debug("Enrich: is_private = %s", is_private)
 
         # Deduplicate + explain EPP status codes

@@ -13,6 +13,10 @@ from typing import Any
 HTML_THEMES = ("light", "dark")
 
 
+class _SafeHtml(str):
+    """Marker for strings that are already HTML-safe and must not be re-escaped."""
+
+
 class HtmlExporter:
     """Render structured scan results as a branded, self-contained HTML document."""
 
@@ -639,7 +643,9 @@ class HtmlExporter:
     def _dns_sections(self, data: dict[str, Any]) -> str:
         rows = []
         for record_type, values in data.get("records", {}).items():
-            rows.append((record_type, "<br>".join(escape(str(v)) for v in values)))
+            rows.append(
+                (record_type, _SafeHtml("<br>".join(escape(str(v)) for v in values)))
+            )
         sections = [
             self._table("DNS Records", ["Type", "Values"], rows),
             self._list_section("DNS Insights", data.get("analysis", [])),
@@ -825,7 +831,7 @@ class HtmlExporter:
         return f'<ul class="clean-list">{items}</ul>'
 
     def _cell_html(self, value: Any) -> str:
-        if self._is_html_cell(value):
+        if isinstance(value, _SafeHtml):
             return str(value)
         return escape(str(value))
 
@@ -841,20 +847,11 @@ class HtmlExporter:
         if cls._logo_loaded:
             return cls._logo_data_uri
 
-        project_root = Path(__file__).resolve().parents[2]
+        asset_dir = Path(__file__).resolve().parents[1] / "assets" / "img"
         candidates = [
-            project_root / "assests" / "img" / "logo_no_bg_2.png",
-            project_root / "assets" / "img" / "logo_no_bg_2.png",
-            project_root / "assests" / "img" / "logo_no_bg_1.png",
-            project_root / "assets" / "img" / "logo_no_bg_1.png",
-            project_root / "assests" / "img" / "logo_2.png",
-            project_root / "assets" / "img" / "logo_2.png",
-            Path.cwd() / "assests" / "img" / "logo_no_bg_2.png",
-            Path.cwd() / "assets" / "img" / "logo_no_bg_2.png",
-            Path.cwd() / "assests" / "img" / "logo_no_bg_1.png",
-            Path.cwd() / "assets" / "img" / "logo_no_bg_1.png",
-            Path.cwd() / "assests" / "img" / "logo_2.png",
-            Path.cwd() / "assets" / "img" / "logo_2.png",
+            asset_dir / "logo_no_bg_2.png",
+            asset_dir / "logo_no_bg_1.png",
+            asset_dir / "logo_2.png",
         ]
         for path in candidates:
             try:
@@ -871,17 +868,17 @@ class HtmlExporter:
         return cls._logo_data_uri
 
     @staticmethod
-    def _format_value(value: Any) -> str:
+    def _format_value(value: Any) -> _SafeHtml | str:
         if value is None:
-            return '<span class="muted">-</span>'
+            return _SafeHtml('<span class="muted">-</span>')
         if isinstance(value, (list, tuple, set)):
             if not value:
-                return '<span class="muted">-</span>'
-            return "<br>".join(escape(str(item)) for item in value)
+                return _SafeHtml('<span class="muted">-</span>')
+            return _SafeHtml("<br>".join(escape(str(item)) for item in value))
         if isinstance(value, dict):
             payload = escape(json.dumps(value, indent=2, ensure_ascii=False, default=str))
-            return f'<pre class="inline-pre">{payload}</pre>'
-        return escape(str(value))
+            return _SafeHtml(f'<pre class="inline-pre">{payload}</pre>')
+        return str(value)
 
     @staticmethod
     def _friendly_datetime(value: str) -> str:
@@ -917,11 +914,3 @@ class HtmlExporter:
         if not security:
             return "-"
         return f"{security.get('score', '-')}/10"
-
-    @staticmethod
-    def _is_html_cell(value: Any) -> bool:
-        return isinstance(value, str) and (
-            "<br>" in value
-            or value.startswith("<pre")
-            or value.startswith("<span")
-        )

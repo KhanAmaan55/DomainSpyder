@@ -86,7 +86,12 @@ class PortScanner:
         ip = self._resolve_target(target)
         if not ip:
             logger.error("Failed to resolve target: %s", target)
-            return {}
+            return {
+                "command": "ports",
+                "target": target,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "error": f"Could not resolve target: {target}",
+            }
         
         reverse_dns = self._reverse_dns(ip)
         provider = self._detect_provider(ip, reverse_dns)
