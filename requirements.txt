@@ -1,5 +1,15 @@
+# Core dependencies
 requests
 httpx
 dnspython
 rich
 python-whois
+
+# Development dependencies
+pytest>=7.0
+pytest-cov>=4.0
+pytest-mock>=3.0
+responses>=0.23
+ruff>=0.1
+black>=23.0
+mypy>=1.0
