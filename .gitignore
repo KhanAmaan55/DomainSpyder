@@ -18,3 +18,15 @@ dist/
 
 # Output files
 results.txt
+
+# Test and coverage
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

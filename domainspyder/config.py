@@ -5,7 +5,7 @@ Centralizes all configuration values, constants, and mappings
 used throughout the application.
 """
 
-VERSION = "0.8.0"
+VERSION = "0.9.0"
 APP_NAME = "DOMAIN SPYDER"
 DESCRIPTION = "Domain Intelligence Framework"
 AUTHOR = "Amaan Khan"
