@@ -246,15 +246,19 @@ def _handle_subdomains(args: argparse.Namespace) -> None:
     print_total(len(results))
 
     if args.save:
-        with open(args.save, "w") as fh:
-            if args.alive:
-                for item in results:
-                    fh.write(
-                        f"{item['subdomain']} {item['status']} {item['title']}\n"
-                    )
-            else:
-                fh.write("\n".join(results))
-        print_saved(args.save)
+        try:
+            with open(args.save, "w") as fh:
+                if args.alive:
+                    for item in results:
+                        fh.write(
+                            f"{item['subdomain']} {item['status']} {item['title']}\n"
+                        )
+                else:
+                    fh.write("\n".join(results))
+        except OSError as exc:
+            console.print(f"  [red]Failed to save results:[/red] {exc}\n")
+        else:
+            print_saved(args.save)
 
     _maybe_save_report(data, args.output, args.html_theme)
 
@@ -444,8 +448,12 @@ def main() -> None:
     if args.debug:
         logging.basicConfig(
             level=logging.DEBUG,
-            format="[%(levelname)s] %(name)s: %(message)s",
+            format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+            datefmt="%H:%M:%S",
         )
+        # Suppress noisy library logs in debug mode
+        for noisy in ("httpx", "urllib3", "httpcore", "chardet", "whois"):
+            logging.getLogger(noisy).setLevel(logging.WARNING)
     else:
         logging.basicConfig(level=logging.CRITICAL)
 
