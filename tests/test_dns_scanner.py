@@ -64,8 +64,7 @@ class TestDNSScanner:
         assert "NS" in records
         assert "TXT" in records
 
-    @patch("dns.resolver.Resolver")
-    def test_analyze_spf_strict(self, mock_resolver_class):
+    def test_analyze_spf_strict(self):
         records = {
             "A": ["93.184.216.34"],
             "MX": ["aspmx.l.google.com"],
@@ -81,8 +80,7 @@ class TestDNSScanner:
         assert "SPF: Strict" in insight_text
         assert "DMARC: Strict" in insight_text
 
-    @patch("dns.resolver.Resolver")
-    def test_analyze_spf_softfail(self, mock_resolver_class):
+    def test_analyze_spf_softfail(self):
         records = {
             "A": ["93.184.216.34"],
             "MX": ["aspmx.l.google.com"],
@@ -95,8 +93,7 @@ class TestDNSScanner:
         insight_text = " ".join(insights)
         assert "Soft fail" in insight_text
 
-    @patch("dns.resolver.Resolver")
-    def test_analyze_no_spf(self, mock_resolver_class):
+    def test_analyze_no_spf(self):
         records = {
             "A": ["93.184.216.34"],
             "MX": ["mail.example.com"],
@@ -109,8 +106,7 @@ class TestDNSScanner:
         insight_text = " ".join(insights)
         assert "SPF: Not configured" in insight_text
 
-    @patch("dns.resolver.Resolver")
-    def test_analyze_dmarc_not_configured(self, mock_resolver_class):
+    def test_analyze_dmarc_not_configured(self):
         records = {
             "A": ["93.184.216.34"],
             "MX": ["aspmx.l.google.com"],
@@ -123,8 +119,7 @@ class TestDNSScanner:
         insight_text = " ".join(insights)
         assert "DMARC: Not configured" in insight_text
 
-    @patch("dns.resolver.Resolver")
-    def test_calculate_security_perfect(self, mock_resolver_class):
+    def test_calculate_security_perfect(self):
         records = {
             "MX": ["aspmx.l.google.com"],
             "TXT": ["v=spf1 include:_spf.google.com -all"],
@@ -132,11 +127,10 @@ class TestDNSScanner:
         scanner = DNSScanner()
         with patch.object(scanner, "get_dmarc_cached", return_value=(["v=DMARC1; p=reject"], True)):
             security = scanner.calculate_security(records, "example.com")
-        assert security["score"] >= 8
+        assert security["score"] == 10
         assert security["risk"] == "Low Risk"
 
-    @patch("dns.resolver.Resolver")
-    def test_calculate_security_no_spf(self, mock_resolver_class):
+    def test_calculate_security_no_spf(self):
         records = {
             "MX": ["mail.example.com"],
             "TXT": [],

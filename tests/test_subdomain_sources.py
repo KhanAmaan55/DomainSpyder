@@ -1,7 +1,7 @@
 """Tests for passive subdomain enumeration sources."""
 
 import json
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -134,7 +134,7 @@ class TestWaybackSource:
 
 
 class TestBruteForceSource:
-    def test_fetch_resolves_subdomains(self, mock_dns_resolver, mock_wordlist):
+    def test_fetch_resolves_subdomains(self, mock_wordlist):
         import dns.resolver
 
         def resolve_side(subdomain, record_type):
@@ -142,11 +142,11 @@ class TestBruteForceSource:
                 return [MagicMock()]
             raise dns.resolver.NXDOMAIN
 
-        mock_dns_resolver.side_effect = resolve_side
-
         source = BruteForceSource(wordlist_path=mock_wordlist, threads=2, delay=0)
-        results = source.fetch("example.com")
-        assert "www.example.com" in results
+        with patch("dns.resolver.Resolver") as mock_resolver_cls:
+            mock_resolver_cls.return_value.resolve.side_effect = resolve_side
+            results = source.fetch("example.com")
+        assert results == ["www.example.com"]
 
     def test_fetch_handles_exceptions(self, mock_wordlist):
         source = BruteForceSource(wordlist_path=mock_wordlist, threads=2, delay=0)

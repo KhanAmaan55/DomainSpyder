@@ -37,9 +37,9 @@ class TestIsValidSubdomain:
         assert is_valid_subdomain("  www.example.com  ", "example.com") is True
 
     def test_partial_match(self):
-        assert is_valid_subdomain("notexample.com", "example.com") is True
-        # "notexample.com" ends with "example.com", so technically valid
-        assert is_valid_subdomain("fakeexample.com", "example.com") is True
+        # Suffix matches must respect the dot boundary.
+        assert is_valid_subdomain("notexample.com", "example.com") is False
+        assert is_valid_subdomain("fakeexample.com", "example.com") is False
 
 
 class TestNormalizeProvider:

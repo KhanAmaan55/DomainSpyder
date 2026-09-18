@@ -46,10 +46,10 @@ class TestDetectFromScriptSources:
     def test_webpack(self):
         assert "Webpack" in detect_from_script_sources(["/dist/webpack/main.js"])
 
-    def test_jquery(self):
+    def test_lodash(self):
         assert "Lodash" in detect_from_script_sources(["/js/lodash.min.js"])
 
-    def test_react(self):
+    def test_cdnjs(self):
         assert "cdnjs" in detect_from_script_sources(["https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/react.min.js"])
 
     def test_empty_list(self):

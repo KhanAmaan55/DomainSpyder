@@ -28,12 +28,16 @@ class TestDetectFrontend:
         assert result == []
 
     def test_strong_platform_suppression(self):
-        body = '<div id="__next">App</div>'
+        body = '<div id="__next" data-reactroot>App</div><script>__NEXT_DATA__</script>'.lower()
+
+        baseline = [r for r in detect_frontend(body) if r["name"] == "React"]
+        assert baseline, "React must be detected without suppression"
+
         result = detect_frontend(body, strong_platforms={"Wix"})
-        # Score should be suppressed
         react = [r for r in result if r["name"] == "React"]
-        if react:
-            assert react[0]["score"] < 8
+        assert react, "React must still be reported, only with a lower score"
+        assert react[0]["score"] < baseline[0]["score"]
+        assert react[0]["score"] < 8
 
     def test_svelte(self):
         body = '<div data-svelte-h="abc">App</div>'
