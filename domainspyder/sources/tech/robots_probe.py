@@ -31,12 +31,12 @@ def probe_robots_txt(
 ) -> dict[str, list[Any]]:
     """
     Probe the target site's /robots.txt for known CMS and admin/tool indicators.
-    
+
     Builds a /robots.txt URL from `base_url`, fetches and scans its contents for known substrings, and returns any detected hints grouped by type.
-    
+
     Parameters:
         base_url (str): Base URL (including scheme and host) used to construct the /robots.txt location.
-    
+
     Returns:
         dict: A dictionary with two keys:
             - "cms_hints" (list[dict]): Detected CMS hints; each entry contains `name`, `score`, `confidence`, `meter`, and `category`.
@@ -72,19 +72,22 @@ def probe_robots_txt(
     for pattern, name, cat in _ROBOTS_HINTS:
         if pattern in text and name not in seen_names:
             if cat:
-                cms_hints.append({
-                    "name": name,
-                    "score": 5,
-                    "confidence": "Medium",
-                    "meter": "█████░░░░░",
-                    "category": cat,
-                })
+                cms_hints.append(
+                    {
+                        "name": name,
+                        "score": 5,
+                        "confidence": "Medium",
+                        "meter": "█████░░░░░",
+                        "category": cat,
+                    }
+                )
             else:
                 other_hints.append(name)
             seen_names.add(name)
 
     logger.debug(
         "robots.txt probe: %d CMS hints, %d other hints",
-        len(cms_hints), len(other_hints),
+        len(cms_hints),
+        len(other_hints),
     )
     return {"cms_hints": cms_hints, "other_hints": other_hints}

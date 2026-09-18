@@ -31,9 +31,9 @@ RESOLVER_POOL_SIZE = 10
 # ---------------------------------------------------------------------------
 
 BRUTE_CONFIG = {
-    "fast":      {"delay": 0.001, "threads": 80},
-    "balanced":  {"delay": 0.005, "threads": 50},
-    "stealth":   {"delay": 0.01,  "threads": 20},
+    "fast": {"delay": 0.001, "threads": 80},
+    "balanced": {"delay": 0.005, "threads": 50},
+    "stealth": {"delay": 0.01, "threads": 20},
 }
 
 DEFAULT_BRUTE_MODE = "balanced"
@@ -53,10 +53,10 @@ ALIVE_DELAY = 0.005
 # ---------------------------------------------------------------------------
 
 PROVIDER_MAP = {
-    "google":    "Google Workspace",
-    "zoho":      "Zoho Mail",
+    "google": "Google Workspace",
+    "zoho": "Zoho Mail",
     "microsoft": "Microsoft 365",
-    "amazon":    "Amazon SES",
+    "amazon": "Amazon SES",
 }
 
 # ---------------------------------------------------------------------------
@@ -69,10 +69,7 @@ DEFAULT_WORDLIST = "wordlists/default.txt"
 # Port Scanning
 # ---------------------------------------------------------------------------
 
-DEFAULT_PORTS = [
-    21, 22, 25, 53, 80, 110, 139, 143,
-    443, 445, 3306, 3389, 8080, 8443
-]
+DEFAULT_PORTS = [21, 22, 25, 53, 80, 110, 139, 143, 443, 445, 3306, 3389, 8080, 8443]
 
 PORT_SCAN_TIMEOUT = 1.0
 PORT_SCAN_THREADS = 50
@@ -82,9 +79,26 @@ PORT_SCAN_THREADS = 50
 # ---------------------------------------------------------------------------
 
 TOP_PORTS_100 = [
-    80, 443, 22, 21, 25, 53, 110, 143, 445, 3306,
-    3389, 8080, 8443, 139, 5900, 1723, 111, 995,
-    993, 587
+    80,
+    443,
+    22,
+    21,
+    25,
+    53,
+    110,
+    143,
+    445,
+    3306,
+    3389,
+    8080,
+    8443,
+    139,
+    5900,
+    1723,
+    111,
+    995,
+    993,
+    587,
 ]
 
 TOP_PORTS_1000 = list(range(1, 1001))
@@ -98,10 +112,10 @@ WHOIS_TIMEOUT = 10
 RDAP_BASE_URL = "https://rdap.org/domain/"
 
 DOMAIN_AGE_THRESHOLDS = {
-    "new":         1,    # < 1 year
-    "established": 5,    # 1–5 years
-    "mature":      10,   # 5–10 years
-    "veteran":     10,   # 10+ years
+    "new": 1,  # < 1 year
+    "established": 5,  # 1-5 years
+    "mature": 10,  # 5-10 years
+    "veteran": 10,  # 10+ years
 }
 
 EXPIRY_WARNING_DAYS = 90

@@ -14,7 +14,6 @@ from typing import Any
 from domainspyder.sources.tech.helpers import (
     boost,
     finalize_all,
-    header_blob,
     new_candidate,
 )
 
@@ -25,13 +24,14 @@ logger = logging.getLogger(__name__)
 # Server detection
 # ------------------------------------------------------------------
 
+
 def detect_server(headers: dict[str, str]) -> list[dict[str, Any]]:
     """
     Detect the likely web server from HTTP response headers.
-    
+
     Parameters:
         headers (dict[str, str]): Response headers (keys expected lower/upper-case agnostic).
-    
+
     Returns:
         list[dict[str, Any]]: Ranked list of candidate server dictionaries with scoring metadata.
     """
@@ -41,8 +41,14 @@ def detect_server(headers: dict[str, str]) -> list[dict[str, Any]]:
     candidates = {
         name: new_candidate()
         for name in [
-            "nginx", "Apache", "IIS", "Caddy",
-            "LiteSpeed", "Gunicorn", "Cloudflare", "Kestrel",
+            "nginx",
+            "Apache",
+            "IIS",
+            "Caddy",
+            "LiteSpeed",
+            "Gunicorn",
+            "Cloudflare",
+            "Kestrel",
         ]
     }
 
@@ -70,19 +76,20 @@ def detect_server(headers: dict[str, str]) -> list[dict[str, Any]]:
 # Backend detection
 # ------------------------------------------------------------------
 
+
 def detect_backend(
     headers: dict[str, str],
     cookies: dict[str, str],
 ) -> list[dict[str, Any]]:
     """
     Infer the most likely backend language or framework from HTTP response headers and cookies.
-    
+
     This function examines header values (e.g., `X-Powered-By`, `Server`, `Set-Cookie`) and cookie names to build and score candidate backends, then returns a ranked list.
-    
+
     Parameters:
         headers (dict[str, str]): Response headers (header names and their values).
         cookies (dict[str, str]): Cookie names mapped to their values.
-    
+
     Returns:
         list[dict[str, Any]]: Ranked candidate dictionaries describing possible backends (e.g., name, score, metadata).
     """
@@ -97,8 +104,13 @@ def detect_backend(
     candidates = {
         name: new_candidate()
         for name in [
-            "PHP", "Node.js", "Java", "Python",
-            "Ruby", "ASP.NET", "Go",
+            "PHP",
+            "Node.js",
+            "Java",
+            "Python",
+            "Ruby",
+            "ASP.NET",
+            "Go",
         ]
     }
 
@@ -113,9 +125,14 @@ def detect_backend(
     # Node.js / Express / Next
     if any(t in blob for t in ["express", "node.js", "next.js"]):
         boost(candidates["Node.js"], 2, 7)
-    if any(n in cookies for n in [
-        "connect.sid", "__next_preview_data", "next-auth.session-token",
-    ]):
+    if any(
+        n in cookies
+        for n in [
+            "connect.sid",
+            "__next_preview_data",
+            "next-auth.session-token",
+        ]
+    ):
         boost(candidates["Node.js"], 1, 3)
     if headers.get("x-powered-by", "").lower() == "next.js":
         boost(candidates["Node.js"], 1, 3)
@@ -127,9 +144,17 @@ def detect_backend(
         boost(candidates["Java"], 1, 3)
 
     # Python (Django / Flask / FastAPI)
-    if any(t in blob for t in [
-        "django", "flask", "fastapi", "python", "werkzeug", "uvicorn",
-    ]):
+    if any(
+        t in blob
+        for t in [
+            "django",
+            "flask",
+            "fastapi",
+            "python",
+            "werkzeug",
+            "uvicorn",
+        ]
+    ):
         boost(candidates["Python"], 2, 7)
     if "csrftoken" in cookies:
         boost(candidates["Python"], 1, 3)
@@ -143,9 +168,15 @@ def detect_backend(
         boost(candidates["Ruby"], 1, 3)
 
     # ASP.NET / .NET Core
-    if any(t in blob for t in [
-        "asp.net", "aspnetcore", "aspxerrorpath", "webmatrix",
-    ]):
+    if any(
+        t in blob
+        for t in [
+            "asp.net",
+            "aspnetcore",
+            "aspxerrorpath",
+            "webmatrix",
+        ]
+    ):
         boost(candidates["ASP.NET"], 2, 8)
     if ".net" in x_powered or ".net" in server_val:
         boost(candidates["ASP.NET"], 2, 8)
@@ -167,21 +198,29 @@ def detect_backend(
 # CDN / edge detection
 # ------------------------------------------------------------------
 
+
 def detect_cdn(headers: dict[str, str]) -> list[dict[str, Any]]:
     """
     Infer likely CDN or edge providers from HTTP response headers and return ranked candidates.
-    
+
     Parameters:
         headers (dict[str, str]): HTTP response headers; header names are typically lowercased (values may be any case).
-    
+
     Returns:
         list[dict[str, Any]]: A ranked list of candidate CDN/edge providers with associated scoring metadata.
     """
     candidates = {
         name: new_candidate()
         for name in [
-            "Cloudflare", "AWS CloudFront", "Vercel", "Fastly",
-            "Akamai", "Azure CDN", "Google Cloud", "BunnyCDN", "Netlify",
+            "Cloudflare",
+            "AWS CloudFront",
+            "Vercel",
+            "Fastly",
+            "Akamai",
+            "Azure CDN",
+            "Google Cloud",
+            "BunnyCDN",
+            "Netlify",
         ]
     }
 

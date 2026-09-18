@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 def detect_from_cookies(cookies: dict[str, str]) -> list[str]:
     """
     Detect technologies present based on cookie names.
-    
+
     Parameters:
         cookies (dict[str, str]): Mapping of cookie names to values; cookie names are used for detection in a case-insensitive, substring-matching manner.
-    
+
     Returns:
         list[str]: Labels of detected technologies (each label appears at most once). An empty list is returned when `cookies` is falsy or no patterns match.
     """

@@ -11,12 +11,10 @@ from typing import Any
 
 from rich import box
 from rich.console import Console
-from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
 from domainspyder.display import themes
-
 
 # ---------------------------------------------------------------------------
 # Shared console instance
@@ -28,6 +26,7 @@ console = Console()
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _section_header(title: str, *, style: str = themes.SUBHEADING) -> None:
     """Print a styled section header with box-drawing separators."""
@@ -56,6 +55,7 @@ def color_status(status_code: int) -> str:
 # Target info
 # ---------------------------------------------------------------------------
 
+
 def print_target(domain: str, mode: str = "") -> None:
     """Print the target domain line."""
     line = Text()
@@ -70,6 +70,7 @@ def print_target(domain: str, mode: str = "") -> None:
 # ---------------------------------------------------------------------------
 # Subdomain output
 # ---------------------------------------------------------------------------
+
 
 def print_subdomain_table(
     results: list[Any],
@@ -134,6 +135,7 @@ def print_total(count: int) -> None:
 # ---------------------------------------------------------------------------
 # DNS output
 # ---------------------------------------------------------------------------
+
 
 def print_security_score(security: dict) -> None:
     """Render the DNS security score panel."""
@@ -212,6 +214,7 @@ def print_dns_records(records: dict[str, list[str]]) -> None:
 
         console.print()
 
+
 # ---------------------------------------------------------------------------
 # Port output
 # ---------------------------------------------------------------------------
@@ -229,6 +232,7 @@ def print_port_summary(data: dict) -> None:
     console.print(f"  Open Ports: [green]{data['open_count']}[/green]")
     console.print(f"  Closed: [dim]{data['closed_count']}[/dim]")
     console.print(f"  Duration: {data['duration']}s\n")
+
 
 def print_port_table(results: list[dict[str, Any]]) -> None:
     """Render open ports as a Rich table."""
@@ -263,6 +267,7 @@ def print_port_table(results: list[dict[str, Any]]) -> None:
     console.print(table)
     console.print()
 
+
 def print_port_insights(insights: list[str]) -> None:
     _section_header("PORT INSIGHTS")
 
@@ -288,6 +293,7 @@ def print_port_insights(insights: list[str]) -> None:
 
     console.print()
 
+
 def _color_port_state(state: str) -> str:
     """Colorize port state."""
     if state == "open":
@@ -299,10 +305,11 @@ def _color_port_state(state: str) -> str:
 # Technology output
 # ---------------------------------------------------------------------------
 
+
 def print_tech_summary(data: dict[str, Any]) -> None:
     """
     Render a formatted summary of detected web technologies for a target domain.
-    
+
     Parameters:
         data (dict): A mapping containing technology detection results with the following keys:
             - target (str): The scanned domain or host.
@@ -316,7 +323,7 @@ def print_tech_summary(data: dict[str, Any]) -> None:
                 - meter (str): Visual meter string representing detection strength.
                 - confidence (int|float): Confidence percentage or value to display.
             - other (list[str], optional): Additional technologies to list under "Other Technologies".
-    
+
     This function prints a human-readable, column-aligned summary of the technologies (including name+version,
     category, meter, and confidence) and an optional "Other Technologies" section. It produces no return value.
     """
@@ -360,9 +367,11 @@ def print_tech_summary(data: dict[str, Any]) -> None:
 
     console.print()
 
+
 # ---------------------------------------------------------------------------
 # Domain info output
 # ---------------------------------------------------------------------------
+
 
 def print_info_summary(data: dict[str, Any]) -> None:
     """Render the main domain registration information panel."""
@@ -382,8 +391,7 @@ def print_info_summary(data: dict[str, Any]) -> None:
         age_suffix = ""
         if age:
             age_suffix = (
-                f"  [dim]({age.get('human', '')} — "
-                f"{age.get('label', '')})[/dim]"
+                f"  [dim]({age.get('human', '')} — " f"{age.get('label', '')})[/dim]"
             )
         console.print(f"  Created:      [green]{creation}[/green]{age_suffix}")
 
@@ -473,8 +481,7 @@ def print_info_ssl(data: dict[str, Any]) -> None:
     issuer_org = data.get("ssl_issuer_org")
     if issuer_org and issuer_org != issuer:
         console.print(
-            f"  Issuer:       [cyan]{issuer}[/cyan]"
-            f"  [dim]({issuer_org})[/dim]",
+            f"  Issuer:       [cyan]{issuer}[/cyan]" f"  [dim]({issuer_org})[/dim]",
         )
     else:
         console.print(f"  Issuer:       [cyan]{issuer}[/cyan]")
@@ -543,29 +550,25 @@ def print_info_soa(data: dict[str, Any]) -> None:
     refresh = data.get("soa_refresh")
     if refresh is not None:
         console.print(
-            f"  Refresh:      [dim]{refresh}s"
-            f" ({_seconds_to_human(refresh)})[/dim]",
+            f"  Refresh:      [dim]{refresh}s" f" ({_seconds_to_human(refresh)})[/dim]",
         )
 
     retry = data.get("soa_retry")
     if retry is not None:
         console.print(
-            f"  Retry:        [dim]{retry}s"
-            f" ({_seconds_to_human(retry)})[/dim]",
+            f"  Retry:        [dim]{retry}s" f" ({_seconds_to_human(retry)})[/dim]",
         )
 
     expire = data.get("soa_expire")
     if expire is not None:
         console.print(
-            f"  Expire:       [dim]{expire}s"
-            f" ({_seconds_to_human(expire)})[/dim]",
+            f"  Expire:       [dim]{expire}s" f" ({_seconds_to_human(expire)})[/dim]",
         )
 
     min_ttl = data.get("soa_min_ttl")
     if min_ttl is not None:
         console.print(
-            f"  Min TTL:      [dim]{min_ttl}s"
-            f" ({_seconds_to_human(min_ttl)})[/dim]",
+            f"  Min TTL:      [dim]{min_ttl}s" f" ({_seconds_to_human(min_ttl)})[/dim]",
         )
 
     console.print()
@@ -599,8 +602,7 @@ def print_info_status(status_explained: list[dict[str, str]]) -> None:
         code_lower = code.lower()
         if "hold" in code_lower or "pending" in code_lower:
             console.print(
-                f"    [red]![/red]  [red]{code}[/red]"
-                f"  [dim]— {meaning}[/dim]",
+                f"    [red]![/red]  [red]{code}[/red]" f"  [dim]— {meaning}[/dim]",
             )
         elif "prohibited" in code_lower:
             console.print(
@@ -663,6 +665,7 @@ def _seconds_to_human(seconds: int) -> str:
 # File save confirmation
 # ---------------------------------------------------------------------------
 
+
 def print_saved(filepath: str) -> None:
     """Print a confirmation that results were saved."""
     line = Text()
@@ -670,4 +673,3 @@ def print_saved(filepath: str) -> None:
     line.append(f"  {filepath}", style="magenta")
     console.print(line, highlight=False)
     console.print()
-

@@ -1,10 +1,10 @@
 """DomainSpyder domain-info source package."""
 
 from domainspyder.sources.info.base_info_source import BaseInfoSource
-from domainspyder.sources.info.whois_source import WhoisSource
+from domainspyder.sources.info.dns_soa_source import DnsSoaSource
 from domainspyder.sources.info.rdap_source import RdapSource
 from domainspyder.sources.info.ssl_source import SslSource
-from domainspyder.sources.info.dns_soa_source import DnsSoaSource
+from domainspyder.sources.info.whois_source import WhoisSource
 
 ALL_INFO_SOURCES = [
     WhoisSource,
@@ -14,10 +14,10 @@ ALL_INFO_SOURCES = [
 ]
 
 __all__ = [
+    "ALL_INFO_SOURCES",
     "BaseInfoSource",
-    "WhoisSource",
+    "DnsSoaSource",
     "RdapSource",
     "SslSource",
-    "DnsSoaSource",
-    "ALL_INFO_SOURCES",
+    "WhoisSource",
 ]

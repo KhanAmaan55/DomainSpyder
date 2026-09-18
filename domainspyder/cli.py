@@ -13,16 +13,18 @@ import logging
 import warnings
 from typing import Any
 
+from rich.progress import Progress, SpinnerColumn, TextColumn
+
 from domainspyder.config import (
     APP_NAME,
     DEFAULT_BRUTE_MODE,
     DEFAULT_THREADS,
     DEFAULT_WORDLIST,
     DESCRIPTION,
-    VERSION,
+    FULL_PORT_RANGE,
     TOP_PORTS_100,
     TOP_PORTS_1000,
-    FULL_PORT_RANGE
+    VERSION,
 )
 from domainspyder.display.banner import print_banner
 from domainspyder.display.formatter import (
@@ -35,24 +37,22 @@ from domainspyder.display.formatter import (
     print_info_ssl,
     print_info_status,
     print_info_summary,
-    print_tech_summary,
+    print_port_insights,
+    print_port_summary,
+    print_port_table,
     print_saved,
     print_security_score,
     print_subdomain_table,
     print_target,
+    print_tech_summary,
     print_total,
-    print_port_table,
-    print_port_summary,
-    print_port_insights
 )
 from domainspyder.reporting import ExportError, save_report
 from domainspyder.scanners.dns_scanner import DNSScanner
-from domainspyder.scanners.subdomain_scanner import SubdomainScanner
-from domainspyder.scanners.port_scanner import PortScanner
-from domainspyder.scanners.tech_scanner import TechScanner
 from domainspyder.scanners.info_scanner import InfoScanner
-
-from rich.progress import Progress, SpinnerColumn, TextColumn
+from domainspyder.scanners.port_scanner import PortScanner
+from domainspyder.scanners.subdomain_scanner import SubdomainScanner
+from domainspyder.scanners.tech_scanner import TechScanner
 
 warnings.simplefilter("ignore")
 
@@ -249,10 +249,10 @@ def _handle_subdomains(args: argparse.Namespace) -> None:
         try:
             with open(args.save, "w") as fh:
                 if args.alive:
-                    for item in results:
-                        fh.write(
-                            f"{item['subdomain']} {item['status']} {item['title']}\n"
-                        )
+                    fh.writelines(
+                        f"{item['subdomain']} {item['status']} {item['title']}\n"
+                        for item in results
+                    )
                 else:
                     fh.write("\n".join(results))
         except OSError as exc:
@@ -471,7 +471,7 @@ def main() -> None:
             handler(args)
         except KeyboardInterrupt:
             console.print("\n  [yellow]Aborted by user.[/yellow]\n")
-            raise SystemExit(130)
+            raise SystemExit(130) from None
 
 
 if __name__ == "__main__":
