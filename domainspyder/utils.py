@@ -40,9 +40,10 @@ def is_valid_subdomain(subdomain: str, parent_domain: str) -> bool:
     that do not belong to the parent domain.
     """
     subdomain = subdomain.lower().strip()
+    parent_domain = parent_domain.lower().strip()
     if not subdomain:
         return False
-    if not subdomain.endswith(parent_domain):
+    if subdomain != parent_domain and not subdomain.endswith("." + parent_domain):
         return False
     if "*" in subdomain or "@" in subdomain:
         return False
