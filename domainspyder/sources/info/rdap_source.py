@@ -14,7 +14,7 @@ from typing import Any
 
 import httpx
 
-from domainspyder.config import HEADERS, REQUEST_TIMEOUT, RDAP_BASE_URL
+from domainspyder.config import HEADERS, RDAP_BASE_URL, REQUEST_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,8 @@ class RdapSource:
         if response.status_code != 200:
             logger.debug(
                 "RDAP: unexpected status %d for %s",
-                response.status_code, domain,
+                response.status_code,
+                domain,
             )
             return {}
 
@@ -73,7 +74,9 @@ class RdapSource:
         try:
             results = self.fetch(domain)
             logger.debug(
-                "%s: returned %d fields", self.name, len(results),
+                "%s: returned %d fields",
+                self.name,
+                len(results),
             )
             return results
         except Exception as exc:
@@ -97,7 +100,8 @@ class RdapSource:
         if data.get("status"):
             result["status"] = data["status"]
             logger.debug(
-                "RDAP: %d status codes", len(result["status"]),
+                "RDAP: %d status codes",
+                len(result["status"]),
             )
 
         # Events → dates
@@ -139,7 +143,8 @@ class RdapSource:
                 if registrant:
                     result["registrant"] = registrant
                     logger.debug(
-                        "RDAP: registrant = %s", registrant,
+                        "RDAP: registrant = %s",
+                        registrant,
                     )
 
         # Name servers
@@ -153,7 +158,8 @@ class RdapSource:
             if ns_list:
                 result["name_servers"] = sorted(set(ns_list))
                 logger.debug(
-                    "RDAP: %d name servers", len(result["name_servers"]),
+                    "RDAP: %d name servers",
+                    len(result["name_servers"]),
                 )
 
         # DNSSEC
@@ -164,7 +170,8 @@ class RdapSource:
             logger.debug("RDAP: dnssec = %s", result["dnssec"])
 
         logger.debug(
-            "RDAP: finished — %d fields extracted", len(result),
+            "RDAP: finished — %d fields extracted",
+            len(result),
         )
         return result
 
@@ -179,8 +186,7 @@ class RdapSource:
             return None
 
         for field in vcard_array[1]:
-            if isinstance(field, list) and len(field) >= 4:
-                if field[0] == "fn":
-                    return str(field[3]).strip()
+            if isinstance(field, list) and len(field) >= 4 and field[0] == "fn":
+                return str(field[3]).strip()
 
         return None

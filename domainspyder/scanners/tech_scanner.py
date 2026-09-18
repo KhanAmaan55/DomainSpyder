@@ -34,6 +34,10 @@ from domainspyder.sources.tech.asset_analysis import (
     detect_other,
 )
 from domainspyder.sources.tech.cookie_detector import detect_from_cookies
+
+# Probes (make independent network requests)
+from domainspyder.sources.tech.dns_hints_probe import probe_dns_hints
+from domainspyder.sources.tech.favicon_probe import probe_favicon
 from domainspyder.sources.tech.helpers import (
     confidence_label,
     lower_headers,
@@ -44,14 +48,10 @@ from domainspyder.sources.tech.http_detectors import (
     detect_cdn,
     detect_server,
 )
-from domainspyder.sources.tech.security_analysis import detect_security_headers
-from domainspyder.sources.tech.version_extractor import extract_versions
-
-# Probes (make independent network requests)
-from domainspyder.sources.tech.dns_hints_probe import probe_dns_hints
-from domainspyder.sources.tech.favicon_probe import probe_favicon
 from domainspyder.sources.tech.robots_probe import probe_robots_txt
+from domainspyder.sources.tech.security_analysis import detect_security_headers
 from domainspyder.sources.tech.sitemap_probe import probe_sitemap
+from domainspyder.sources.tech.version_extractor import extract_versions
 from domainspyder.sources.tech.wp_api_probe import probe_wp_api
 
 logger = logging.getLogger(__name__)
@@ -85,7 +85,7 @@ class TechScanner:
     def _log(self, level: int, phase: str, msg: str, *args: Any) -> None:
         """
         Log a message prefixed with the scanner's target and phase.
-        
+
         Parameters:
             level (int): Logging level as accepted by the module logger (e.g., logging.INFO).
             phase (str): Short identifier for the current phase used in the log prefix.
@@ -98,12 +98,12 @@ class TechScanner:
     def _check_cancelled(self, phase: str) -> bool:
         """
         Check whether the current scan has been cancelled and log a skipped message for the given phase.
-        
+
         Parameters:
-        	phase (str): Phase name used in the log message when the scan is skipped.
-        
+            phase (str): Phase name used in the log message when the scan is skipped.
+
         Returns:
-        	True if the scanner has been cancelled and the phase was skipped, False otherwise.
+            True if the scanner has been cancelled and the phase was skipped, False otherwise.
         """
         if self._cancelled:
             self._log(logging.INFO, phase, "Skipped (scan cancelled)")
@@ -117,10 +117,10 @@ class TechScanner:
     def scan(self, target: str) -> dict[str, Any]:
         """
         Perform a multi-phase technology scan of the given target and return detected findings.
-        
+
         Parameters:
             target (str): The host or URL to scan. If no scheme is provided, both "https://" and "http://" variants are attempted.
-        
+
         Returns:
             dict[str, Any]: A result dictionary containing:
                 - "target": the original target string
@@ -152,7 +152,9 @@ class TechScanner:
             return self._empty_result(target, urls[0], error="Scan cancelled by user")
 
         if response is None:
-            return self._empty_result(target, urls[0], error="All fetch attempts failed")
+            return self._empty_result(
+                target, urls[0], error="All fetch attempts failed"
+            )
 
         # Extract shared fingerprint data
         headers = lower_headers(response.headers)
@@ -165,10 +167,14 @@ class TechScanner:
         base_url = str(response.url)
 
         self._log(
-            logging.INFO, "HTTP Fetch",
+            logging.INFO,
+            "HTTP Fetch",
             "Got %d status, %d headers, %d cookies, %d scripts, %d stylesheets",
-            response.status_code, len(headers), len(cookies),
-            len(scripts), len(stylesheets),
+            response.status_code,
+            len(headers),
+            len(cookies),
+            len(scripts),
+            len(stylesheets),
         )
 
         # ==============================================================
@@ -195,7 +201,8 @@ class TechScanner:
                 server_results = detect_server(headers)
                 backend_results = detect_backend(headers, cookies)
                 frontend_results = detect_frontend(
-                    body, script_blob=script_blob,
+                    body,
+                    script_blob=script_blob,
                     strong_platforms=strong_platforms,
                 )
                 cdn_results = detect_cdn(headers)
@@ -212,8 +219,11 @@ class TechScanner:
 
                 other = detect_other(headers, body)
                 self._log(
-                    logging.INFO, "Core Detection",
-                    "Found %d categories, %d other", len(categories), len(other),
+                    logging.INFO,
+                    "Core Detection",
+                    "Found %d categories, %d other",
+                    len(categories),
+                    len(other),
                 )
         except KeyboardInterrupt:
             self._cancelled = True
@@ -268,7 +278,9 @@ class TechScanner:
             if not self._check_cancelled("Probes"):
                 self._log(logging.INFO, "Probes", "Running concurrent probes")
                 dns_hints, probe_categories, probe_other = self._run_probes(
-                    target, base_url, categories,
+                    target,
+                    base_url,
+                    categories,
                 )
                 # Merge probe results
                 existing_names = {c["name"] for c in categories}
@@ -302,9 +314,13 @@ class TechScanner:
         # Build result
         # ==============================================================
         self._log(
-            logging.INFO, "Done",
+            logging.INFO,
+            "Done",
             "Scan complete: %d categories, %d other, %d versions, %d DNS hints%s",
-            len(categories), len(other), len(versions), len(dns_hints),
+            len(categories),
+            len(other),
+            len(versions),
+            len(dns_hints),
             " (partially cancelled)" if self._cancelled else "",
         )
 
@@ -341,12 +357,12 @@ class TechScanner:
     ) -> tuple[list[str], list[dict[str, Any]], list[str]]:
         """
         Coordinate concurrent network probes (DNS, robots.txt, favicon, sitemap, and optionally WordPress API) for a target and merge their findings.
-        
+
         Parameters:
             target (str): Original scan target (used for DNS probe).
             base_url (str): Resolved base URL of the site (used for URL-scoped probes).
             categories (list[dict[str, Any]]): Current detected categories used to decide conditional probes (e.g., WordPress API).
-        
+
         Returns:
             tuple[list[str], list[dict[str, Any]], list[str]]: A tuple of
                 - `dns_hints`: list of DNS-derived hints (strings),
@@ -359,8 +375,7 @@ class TechScanner:
 
         # Check if WordPress is detected (for conditional WP API probe)
         wp_detected = any(
-            c["name"] == "WordPress" and c.get("score", 0) >= 5
-            for c in categories
+            c["name"] == "WordPress" and c.get("score", 0) >= 5 for c in categories
         )
 
         probe_tasks: dict[str, Any] = {
@@ -373,10 +388,7 @@ class TechScanner:
             probe_tasks["wp_api"] = lambda: probe_wp_api(base_url)
 
         with ThreadPoolExecutor(max_workers=len(probe_tasks)) as executor:
-            futures = {
-                executor.submit(fn): name
-                for name, fn in probe_tasks.items()
-            }
+            futures = {executor.submit(fn): name for name, fn in probe_tasks.items()}
             for future in as_completed(futures):
                 probe_name = futures[future]
                 try:
@@ -392,10 +404,7 @@ class TechScanner:
                         probe_categories.extend(result.get("cms_hints", []))
                         probe_other.extend(result.get("other_hints", []))
 
-                    elif probe_name == "favicon":
-                        probe_categories.extend(result)
-
-                    elif probe_name == "sitemap":
+                    elif probe_name in ("favicon", "sitemap"):
                         probe_categories.extend(result)
 
                     elif probe_name == "wp_api" and result:
@@ -404,7 +413,8 @@ class TechScanner:
                             if plugin not in probe_other:
                                 probe_other.append(plugin)
                         self._log(
-                            logging.INFO, "WP API",
+                            logging.INFO,
+                            "WP API",
                             "Confirmed WordPress, %d plugins",
                             len(result.get("plugins", [])),
                         )
@@ -424,9 +434,9 @@ class TechScanner:
     ) -> None:
         """
         Increase the score of an existing CMS category entry or append a new CMS entry to the list.
-        
+
         If a category with name equal to `cms_name` exists, its `score` is increased by 2 (capped at 10), its `confidence` is updated using `confidence_label(score)`, and its `meter` string is updated to visually reflect the score. If no such entry exists, a new CMS category dictionary is appended with `score` set to 8, `confidence` set to "High", `meter` set to "████████░░", and `category` set to "CMS". The `categories` list is mutated in place.
-        
+
         Parameters:
             categories (list[dict[str, Any]]): Mutable list of category dictionaries to update.
             cms_name (str): Name of the CMS to boost or add.
@@ -438,13 +448,15 @@ class TechScanner:
             entry["confidence"] = confidence_label(entry["score"])
             entry["meter"] = "█" * entry["score"] + "░" * (10 - entry["score"])
         else:
-            categories.append({
-                "name": cms_name,
-                "score": 8,
-                "confidence": "High",
-                "meter": "████████░░",
-                "category": "CMS",
-            })
+            categories.append(
+                {
+                    "name": cms_name,
+                    "score": 8,
+                    "confidence": "High",
+                    "meter": "████████░░",
+                    "category": "CMS",
+                }
+            )
 
     # ------------------------------------------------------------------
     # HTTP fetch
@@ -457,13 +469,13 @@ class TechScanner:
     ) -> httpx.Response | None:
         """
         Attempt candidate URLs in order and return the first successful HTTP response, using redirect and SSL-fallback strategies.
-        
+
         Tries each URL from `urls` until a response is obtained or the scanner is cancelled. For 3xx redirects, if the Location header points to an HTTPS URL the function attempts a follow-up request to that location. On recognized SSL-related errors it retries the request with TLS verification disabled and redirects enabled. The method logs outcomes and returns the first obtained `httpx.Response` or `None` if all attempts fail.
-        
+
         Parameters:
             target (str): Original target string (used for log prefixes).
             urls (list[str]): Candidate URLs to try (e.g., ["https://example", "http://example"]).
-        
+
         Returns:
             httpx.Response | None: The first successful response object, or `None` if no request succeeded.
         """
@@ -482,30 +494,45 @@ class TechScanner:
                 ) as client:
                     response = client.get(url)
                     self._log(
-                        logging.INFO, "HTTP Fetch",
-                        "Got %d from %s", response.status_code, url,
+                        logging.INFO,
+                        "HTTP Fetch",
+                        "Got %d from %s",
+                        response.status_code,
+                        url,
                     )
 
                     if response.status_code in (301, 302, 303, 307, 308):
                         location = response.headers.get("location", "")
-                        self._log(logging.INFO, "HTTP Fetch", "Redirect → %s", location or "<missing>")
+                        self._log(
+                            logging.INFO,
+                            "HTTP Fetch",
+                            "Redirect → %s",
+                            location or "<missing>",
+                        )
                         if location.startswith("https://"):
                             try:
                                 response = client.get(location)
                                 self._log(
-                                    logging.INFO, "HTTP Fetch",
-                                    "HTTPS redirect succeeded: %d", response.status_code,
+                                    logging.INFO,
+                                    "HTTP Fetch",
+                                    "HTTPS redirect succeeded: %d",
+                                    response.status_code,
                                 )
                             except Exception as exc:
                                 self._log(
-                                    logging.WARNING, "HTTP Fetch",
-                                    "HTTPS redirect failed, using original: %s", exc,
+                                    logging.WARNING,
+                                    "HTTP Fetch",
+                                    "HTTPS redirect failed, using original: %s",
+                                    exc,
                                 )
                 return response
             except _SSL_ERROR_TYPES as exc:
                 self._log(
-                    logging.WARNING, "HTTP Fetch",
-                    "SSL error on %s: %s — retrying without verification", url, exc,
+                    logging.WARNING,
+                    "HTTP Fetch",
+                    "SSL error on %s: %s — retrying without verification",
+                    url,
+                    exc,
                 )
                 try:
                     with httpx.Client(
@@ -516,19 +543,33 @@ class TechScanner:
                     ) as client:
                         response = client.get(url)
                     self._log(
-                        logging.INFO, "HTTP Fetch",
-                        "Unverified TLS succeeded: %d", response.status_code,
+                        logging.INFO,
+                        "HTTP Fetch",
+                        "Unverified TLS succeeded: %d",
+                        response.status_code,
                     )
                     return response
                 except Exception as inner:
                     last_error = str(inner)
-                    self._log(logging.ERROR, "HTTP Fetch", "Unverified TLS also failed: %s", inner)
+                    self._log(
+                        logging.ERROR,
+                        "HTTP Fetch",
+                        "Unverified TLS also failed: %s",
+                        inner,
+                    )
             except Exception as exc:
                 last_error = str(exc)
-                self._log(logging.ERROR, "HTTP Fetch", "Request failed for %s: %s", url, exc)
+                self._log(
+                    logging.ERROR, "HTTP Fetch", "Request failed for %s: %s", url, exc
+                )
 
         if response is None and last_error:
-            self._log(logging.ERROR, "HTTP Fetch", "All attempts failed, last error: %s", last_error)
+            self._log(
+                logging.ERROR,
+                "HTTP Fetch",
+                "All attempts failed, last error: %s",
+                last_error,
+            )
         return response
 
     # ------------------------------------------------------------------
@@ -544,12 +585,12 @@ class TechScanner:
     ) -> dict[str, Any]:
         """
         Construct a minimal scan result dictionary containing the provided target and URL with empty detection outputs.
-        
+
         Parameters:
             target (str): The original scan target string.
             url (str): The resolved/requested base URL for the scan.
             error (str | None): Optional error message to include in the result.
-        
+
         Returns:
             dict[str, Any]: Result dictionary with keys:
                 - "target": the provided target
@@ -575,10 +616,10 @@ class TechScanner:
     def _normalize_targets(target: str) -> list[str]:
         """
         Produce normalized HTTP(S) candidate URLs for a scan target.
-        
+
         Parameters:
             target (str): A hostname or full URL. If `target` already starts with `http://` or `https://`, it is treated as a full URL.
-        
+
         Returns:
             list[str]: A list containing the input URL if a scheme was present, otherwise a two-item list with `https://{target}` first and `http://{target}` second.
         """

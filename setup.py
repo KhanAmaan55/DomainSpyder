@@ -21,8 +21,10 @@ setup(
             "pytest-cov>=4.0",
             "pytest-mock>=3.0",
             "responses>=0.23",
-            "ruff>=0.1",
-            "black>=23.0",
+            # Pinned: these gate CI, and a minor bump can widen
+            # the default rule set or change the formatting style.
+            "ruff>=0.16,<0.17",
+            "black>=25.11,<26.0",
             "mypy>=1.0",
         ],
     },

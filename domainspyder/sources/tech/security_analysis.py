@@ -11,10 +11,10 @@ logger = logging.getLogger(__name__)
 def detect_security_headers(headers: dict[str, str]) -> dict[str, Any]:
     """
     Analyze a mapping of HTTP response headers and report presence and selected properties of common security headers.
-    
+
     Parameters:
         headers (dict[str, str]): Mapping of response header names to their string values.
-    
+
     Returns:
         dict[str, Any]: A dictionary with these keys:
             - "hsts": {"present": bool, "value": str}

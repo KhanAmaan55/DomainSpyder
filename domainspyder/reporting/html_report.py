@@ -9,7 +9,6 @@ from html import escape
 from pathlib import Path
 from typing import Any
 
-
 HTML_THEMES = ("light", "dark")
 
 
@@ -597,7 +596,10 @@ class HtmlExporter:
         cards = [
             ("Command", str(data.get("command", "-"))),
             ("Target", str(data.get("target") or data.get("domain") or "-")),
-            ("Scan Timestamp", self._friendly_datetime(str(data.get("timestamp", "-")))),
+            (
+                "Scan Timestamp",
+                self._friendly_datetime(str(data.get("timestamp", "-"))),
+            ),
         ]
         command = data.get("command")
         if command == "subdomains":
@@ -606,7 +608,9 @@ class HtmlExporter:
         elif command == "dns":
             records = data.get("records", {})
             cards.append(("Record Types", str(len(records))))
-            cards.append(("Security Score", self._score_text(data.get("security_score", {}))))
+            cards.append(
+                ("Security Score", self._score_text(data.get("security_score", {})))
+            )
         elif command == "ports":
             cards.append(("Ports Scanned", str(data.get("ports_scanned", 0))))
             open_count = data.get("open_count", len(data.get("open_ports", [])))
@@ -692,7 +696,9 @@ class HtmlExporter:
                 ["Category", "Name", "Version", "Confidence"],
                 rows,
             )
-            + self._table_from_mapping("Security Headers", data.get("security_headers", {}))
+            + self._table_from_mapping(
+                "Security Headers", data.get("security_headers", {})
+            )
             + self._list_section("Other Technologies", data.get("other", []))
         )
 
@@ -710,7 +716,9 @@ class HtmlExporter:
         )
 
     def _subdomain_sections(self, data: dict[str, Any]) -> str:
-        sub_rows = [(str(idx), sub) for idx, sub in enumerate(data.get("subdomains", []), 1)]
+        sub_rows = [
+            (str(idx), sub) for idx, sub in enumerate(data.get("subdomains", []), 1)
+        ]
         alive_rows = [
             (
                 str(idx),
@@ -721,13 +729,12 @@ class HtmlExporter:
             )
             for idx, item in enumerate(data.get("alive", []), 1)
         ]
-        return (
-            self._table("Discovered Subdomains", ["#", "Subdomain"], sub_rows)
-            + self._table(
-                "Alive Subdomains",
-                ["#", "Subdomain", "Status", "Server", "Title"],
-                alive_rows,
-            )
+        return self._table(
+            "Discovered Subdomains", ["#", "Subdomain"], sub_rows
+        ) + self._table(
+            "Alive Subdomains",
+            ["#", "Subdomain", "Status", "Server", "Title"],
+            alive_rows,
         )
 
     def _security_score(self, security: dict[str, Any]) -> str:
@@ -783,7 +790,7 @@ class HtmlExporter:
         if not rows:
             return (
                 f'<section class="report-section"><div class="section-heading">'
-                f"<h2>{escape(title)}</h2><span class=\"section-count\">0 rows</span></div>"
+                f'<h2>{escape(title)}</h2><span class="section-count">0 rows</span></div>'
                 '<p class="muted">No data found.</p></section>'
             )
 
@@ -858,10 +865,9 @@ class HtmlExporter:
                 image = path.read_bytes()
             except OSError:
                 continue
-            cls._logo_data_uri = (
-                "data:image/png;base64,"
-                + base64.b64encode(image).decode("ascii")
-            )
+            cls._logo_data_uri = "data:image/png;base64," + base64.b64encode(
+                image
+            ).decode("ascii")
             break
 
         cls._logo_loaded = True
@@ -876,7 +882,9 @@ class HtmlExporter:
                 return _SafeHtml('<span class="muted">-</span>')
             return _SafeHtml("<br>".join(escape(str(item)) for item in value))
         if isinstance(value, dict):
-            payload = escape(json.dumps(value, indent=2, ensure_ascii=False, default=str))
+            payload = escape(
+                json.dumps(value, indent=2, ensure_ascii=False, default=str)
+            )
             return _SafeHtml(f'<pre class="inline-pre">{payload}</pre>')
         return str(value)
 

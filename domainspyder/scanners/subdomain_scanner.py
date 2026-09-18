@@ -64,12 +64,17 @@ class SubdomainScanner:
         """
         if brute_only:
             brute_subs = self._run_bruteforce(
-                domain, wordlist, threads, brutemode,
+                domain,
+                wordlist,
+                threads,
+                brutemode,
             )
             passive_subs: list[str] = []
         else:
             brute_subs, passive_subs = self._run_combined(
-                domain, wordlist, threads,
+                domain,
+                wordlist,
+                threads,
             )
 
         logger.debug("Passive total: %d", len(passive_subs))
@@ -111,7 +116,9 @@ class SubdomainScanner:
 
         logger.debug(
             "Brute-only: mode=%s, delay=%.3f, threads=%d",
-            brutemode, delay, threads,
+            brutemode,
+            delay,
+            threads,
         )
 
         source = BruteForceSource(
@@ -130,7 +137,8 @@ class SubdomainScanner:
         """Run passive sources + brute-force concurrently."""
         with ThreadPoolExecutor(max_workers=2) as executor:
             future_passive = executor.submit(
-                self._fetch_passive_sources, domain,
+                self._fetch_passive_sources,
+                domain,
             )
             future_brute = executor.submit(
                 BruteForceSource(
@@ -153,10 +161,7 @@ class SubdomainScanner:
         sources = [cls() for cls in ALL_PASSIVE_SOURCES]
 
         with ThreadPoolExecutor(max_workers=len(sources)) as executor:
-            futures = {
-                executor.submit(src.safe_fetch, domain): src
-                for src in sources
-            }
+            futures = {executor.submit(src.safe_fetch, domain): src for src in sources}
 
             for future in as_completed(futures):
                 result = future.result()
@@ -174,10 +179,7 @@ class SubdomainScanner:
         alive_results: list[dict] = []
 
         with ThreadPoolExecutor(max_workers=threads) as executor:
-            futures = {
-                executor.submit(self._probe, sub): sub
-                for sub in subdomains
-            }
+            futures = {executor.submit(self._probe, sub): sub for sub in subdomains}
 
             for future in as_completed(futures):
                 result = future.result()
@@ -204,7 +206,9 @@ class SubdomainScanner:
                 )
 
                 match = re.search(
-                    r"<title>(.*?)</title>", resp.text, re.IGNORECASE,
+                    r"<title>(.*?)</title>",
+                    resp.text,
+                    re.IGNORECASE,
                 )
                 title = match.group(1).strip() if match else "-"
 

@@ -21,12 +21,12 @@ logger = logging.getLogger(__name__)
 def probe_sitemap(base_url: str) -> list[dict[str, Any]]:
     """
     Probe a site's /sitemap.xml for known CMS indicator patterns.
-    
+
     Builds a sitemap URL from base_url, fetches the sitemap XML, and scans its content for configured CMS indicator patterns. For each unique CMS matched, returns a category dictionary describing the detection.
-    
+
     Parameters:
         base_url (str): The target site's base URL used to construct the sitemap URL (scheme and netloc are preserved).
-    
+
     Returns:
         list[dict[str, Any]]: A list of matched CMS category dictionaries. Each dictionary contains the keys:
             - `name`: CMS name matched
@@ -39,7 +39,7 @@ def probe_sitemap(base_url: str) -> list[dict[str, Any]]:
     if not parsed.scheme or not parsed.netloc:
         base_url = f"http://{base_url}"
         parsed = urlparse(base_url)
-    
+
     sitemap_url = urlunparse((parsed.scheme, parsed.netloc, "/sitemap.xml", "", "", ""))
     logger.debug("Sitemap probe: fetching %s", sitemap_url)
 
@@ -71,13 +71,15 @@ def probe_sitemap(base_url: str) -> list[dict[str, Any]]:
 
     for pattern, name in SITEMAP_CMS_PATTERNS.items():
         if pattern in text and name not in seen:
-            results.append({
-                "name": name,
-                "score": 4,
-                "confidence": "Medium",
-                "meter": "████░░░░░░",
-                "category": "CMS",
-            })
+            results.append(
+                {
+                    "name": name,
+                    "score": 4,
+                    "confidence": "Medium",
+                    "meter": "████░░░░░░",
+                    "category": "CMS",
+                }
+            )
             seen.add(name)
             logger.debug("Sitemap probe: matched %s → %s", pattern, name)
 

@@ -70,7 +70,9 @@ class InfoScanner:
 
         # Phase 1: Run all sources concurrently
         source_data = self._run_sources(
-            domain, skip_ssl=skip_ssl, skip_whois=skip_whois,
+            domain,
+            skip_ssl=skip_ssl,
+            skip_whois=skip_whois,
         )
 
         if not source_data:
@@ -103,14 +105,15 @@ class InfoScanner:
         merged["command"] = "info"
         merged["target"] = domain
         merged["timestamp"] = datetime.now(timezone.utc).isoformat()
-        merged["whois"] = self._build_whois_section(merged, source_data.get("whois", {}))
+        merged["whois"] = self._build_whois_section(
+            merged, source_data.get("whois", {})
+        )
         merged["rdap"] = self._build_whois_section(merged, source_data.get("rdap", {}))
         merged["ssl"] = self._prefixed_section(merged, "ssl_")
         merged["soa"] = self._prefixed_section(merged, "soa_")
         merged["sources_used"] = sorted(source_data.keys())
         merged["sources_failed"] = sorted(
-            set(self._get_source_names(skip_ssl, skip_whois))
-            - set(source_data.keys())
+            set(self._get_source_names(skip_ssl, skip_whois)) - set(source_data.keys())
         )
         merged["duration"] = round(time.time() - start_time, 3)
         merged["brief"] = brief
@@ -241,10 +244,7 @@ class InfoScanner:
         results: dict[str, dict] = {}
 
         with ThreadPoolExecutor(max_workers=len(sources)) as executor:
-            futures = {
-                executor.submit(src.safe_fetch, domain): src
-                for src in sources
-            }
+            futures = {executor.submit(src.safe_fetch, domain): src for src in sources}
 
             for future in as_completed(futures):
                 src = futures[future]
@@ -254,15 +254,19 @@ class InfoScanner:
                         results[src.name] = data
                         logger.debug(
                             "InfoScanner: %s returned %d fields",
-                            src.name, len(data),
+                            src.name,
+                            len(data),
                         )
                     else:
                         logger.debug(
-                            "InfoScanner: %s returned empty", src.name,
+                            "InfoScanner: %s returned empty",
+                            src.name,
                         )
                 except Exception as exc:
                     logger.error(
-                        "InfoScanner: %s raised: %s", src.name, exc,
+                        "InfoScanner: %s raised: %s",
+                        src.name,
+                        exc,
                     )
 
         return results
@@ -289,9 +293,15 @@ class InfoScanner:
 
         # Core fields that can come from WHOIS or RDAP
         core_fields = [
-            "domain_name", "registrar", "creation_date",
-            "expiration_date", "updated_date", "name_servers",
-            "status", "registrant", "dnssec",
+            "domain_name",
+            "registrar",
+            "creation_date",
+            "expiration_date",
+            "updated_date",
+            "name_servers",
+            "status",
+            "registrant",
+            "dnssec",
         ]
 
         for source_key in priority:
@@ -301,7 +311,9 @@ class InfoScanner:
                     merged[field] = data[field]
                     logger.debug(
                         "Merge: %s ← %s (from %s)",
-                        field, data[field], source_key,
+                        field,
+                        data[field],
+                        source_key,
                     )
 
         # SSL-specific fields (always include if available)
@@ -317,7 +329,8 @@ class InfoScanner:
                 merged[key] = value
 
         logger.debug(
-            "Merge: final result has %d fields", len(merged),
+            "Merge: final result has %d fields",
+            len(merged),
         )
         return merged
 
@@ -405,7 +418,8 @@ class InfoScanner:
             created = datetime.strptime(creation_date, "%Y-%m-%d")
         except (ValueError, TypeError):
             logger.debug(
-                "Enrich: cannot parse creation date: %s", creation_date,
+                "Enrich: cannot parse creation date: %s",
+                creation_date,
             )
             return {}
 
@@ -416,10 +430,7 @@ class InfoScanner:
         years = total_months // 12
         months = total_months % 12
 
-        if months > 0:
-            human = f"{years} years, {months} months"
-        else:
-            human = f"{years} years"
+        human = f"{years} years, {months} months" if months > 0 else f"{years} years"
 
         # Determine category label
         thresholds = DOMAIN_AGE_THRESHOLDS
@@ -483,7 +494,8 @@ class InfoScanner:
             # Strip any URL or extra text after the code
             code = status.split(" ")[0].strip()
             meaning = EPP_STATUS_MAP.get(
-                code, "Unknown status code",
+                code,
+                "Unknown status code",
             )
             explained.append({"code": code, "meaning": meaning})
         return explained

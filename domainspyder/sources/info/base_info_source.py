@@ -6,8 +6,8 @@ The ``safe_fetch`` wrapper catches errors so one failing
 source never aborts the entire pipeline.
 """
 
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,9 @@ class BaseInfoSource(ABC):
         try:
             results = self.fetch(domain)
             logger.debug(
-                "%s: returned %d fields", self.name, len(results),
+                "%s: returned %d fields",
+                self.name,
+                len(results),
             )
             return results
         except Exception as exc:

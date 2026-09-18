@@ -11,11 +11,12 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from threading import Lock
-from typing import Any, Optional
+from typing import Any
 
 import dns.resolver
+
 from domainspyder.config import DNS_SERVERS, RECORD_TYPES
-from domainspyder.utils import normalize_provider, display_provider
+from domainspyder.utils import display_provider, normalize_provider
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +122,7 @@ class DNSScanner:
         self,
         records: dict[str, list[str]],
         domain: str,
-        data: Optional[dict] = None,
+        data: dict | None = None,
     ) -> list[str]:
         logger.debug("Starting DNS analysis for %s", domain)
         insights: set[str] = set()
@@ -131,7 +132,6 @@ class DNSScanner:
 
         ns_records = records.get("NS", [])
         mx_records = data["mx"]
-        txt_records = data["txt"]
         spf_records = data["spf_records"]
         mx_providers = data["mx_providers"]
         spf_providers = data["spf_providers"]
@@ -156,12 +156,16 @@ class DNSScanner:
 
         if mx_providers or spf_providers:
             mx_label = ", ".join(display_provider(p) for p in mx_providers) or "Unknown"
-            spf_label = ", ".join(display_provider(p) for p in spf_providers) or "Unknown"
+            spf_label = (
+                ", ".join(display_provider(p) for p in spf_providers) or "Unknown"
+            )
 
             insights.add(f"Email Setup: MX={mx_label} | SPF={spf_label}")
 
             if mx_providers != spf_providers:
-                insights.add("[WARNING] Possible email misconfiguration (MX != SPF providers)")
+                insights.add(
+                    "[WARNING] Possible email misconfiguration (MX != SPF providers)"
+                )
 
         if not spf_records:
             insights.add("SPF: Not configured")
@@ -197,7 +201,7 @@ class DNSScanner:
         self,
         records: dict[str, list[str]],
         domain: str,
-        data: Optional[dict] = None,
+        data: dict | None = None,
     ) -> dict:
         score = 10
         issues: list[str] = []
@@ -206,8 +210,6 @@ class DNSScanner:
         if data is None:
             data = self.preprocess(records)
 
-        txt_records = data["txt"]
-        mx_records = data["mx"]
         spf_records = data["spf_records"]
         mx_prov = data["mx_providers"]
         spf_prov = data["spf_providers"]
@@ -273,13 +275,11 @@ class DNSScanner:
             "good": good,
         }
 
-
     def get_dmarc_cached(self, domain: str) -> tuple[list[str], bool]:
         with self._cache_lock:
             if domain not in self._dmarc_cache:
                 self._dmarc_cache[domain] = self._get_dmarc_record(domain)
             return self._dmarc_cache[domain]
-
 
     def _resolve_record(
         self,
@@ -314,9 +314,7 @@ class DNSScanner:
                     exchange = str(rdata.exchange).rstrip(".")
                     results.append((rdata.preference, exchange))
                 elif record_type == "TXT":
-                    results.append(
-                        "".join(part.decode() for part in rdata.strings)
-                    )
+                    results.append("".join(part.decode() for part in rdata.strings))
                 else:
                     results.append(str(rdata).rstrip("."))
         except Exception as exc:
@@ -338,9 +336,7 @@ class DNSScanner:
         logger.debug("Querying _dmarc.%s", domain)
         try:
             answers = dns.resolver.resolve(f"_dmarc.{domain}", "TXT")
-            records = [
-                "".join(part.decode() for part in r.strings) for r in answers
-            ]
+            records = ["".join(part.decode() for part in r.strings) for r in answers]
             logger.debug("DMARC found: %s", records)
             return records, True
         except Exception:

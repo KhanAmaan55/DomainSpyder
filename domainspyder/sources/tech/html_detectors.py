@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 # Frontend detection
 # ------------------------------------------------------------------
 
+
 def detect_frontend(
     body: str,
     script_blob: str = "",
@@ -31,14 +32,14 @@ def detect_frontend(
 ) -> list[dict[str, Any]]:
     """
     Detect frontend Single-Page Application frameworks by scanning HTML and optional script content.
-    
+
     Scans the provided HTML body (expected to be lowercased) and an optional script_blob for framework-specific signals to build scored candidate detections for React, Angular, Vue, Svelte, Astro, and Ionic. When strong_platforms is provided, reduces scores for several framework candidates to account for hosted-platform suppression. The function returns finalized, ranked detection candidates produced by the detector pipeline.
-    
+
     Parameters:
         body (str): HTML content to scan; should be pre-lowercased for accurate matching.
         script_blob (str): Optional concatenated script/text to check for additional asset/module markers.
         strong_platforms (set[str] | None): Optional set of hosted platform names that will suppress framework scores when present.
-    
+
     Returns:
         list[dict[str, Any]]: Ordered list of candidate dictionaries with detection metadata (score, signals, and related fields) as produced by the detector pipeline.
     """
@@ -51,10 +52,17 @@ def detect_frontend(
 
     # React / Next.js
     react_signals = [
-        "data-reactroot", "data-reactid", "__next_data__",
-        "_next/static", 'id="__next"', "id='__next'",
-        "react.development.js", "react.production.min.js",
-        "react-dom", "__react_fiber", "_reactrouter",
+        "data-reactroot",
+        "data-reactid",
+        "__next_data__",
+        "_next/static",
+        'id="__next"',
+        "id='__next'",
+        "react.development.js",
+        "react.production.min.js",
+        "react-dom",
+        "__react_fiber",
+        "_reactrouter",
     ]
     react_count = sum(1 for s in react_signals if s in body)
     if "__next_data__" in body or "_next/static" in body:
@@ -66,9 +74,16 @@ def detect_frontend(
 
     # Angular
     angular_signals = [
-        "ng-version", "ng-app", "ng-controller", "ng-model",
-        "main-es2015", "runtime-es2015", "polyfills-es2015",
-        "[_nghost", "[_ngcontent", "ng-reflect",
+        "ng-version",
+        "ng-app",
+        "ng-controller",
+        "ng-model",
+        "main-es2015",
+        "runtime-es2015",
+        "polyfills-es2015",
+        "[_nghost",
+        "[_ngcontent",
+        "ng-reflect",
     ]
     ang_count = sum(1 for s in angular_signals if s in body)
     if ang_count >= 2:
@@ -86,7 +101,11 @@ def detect_frontend(
 
     # Ionic
     ionic_signals = [
-        "ionic", "ion-app", "ion-content", "ion-router", "ion-page",
+        "ionic",
+        "ion-app",
+        "ion-content",
+        "ion-router",
+        "ion-page",
     ]
     ionic_count = sum(1 for s in ionic_signals if s in body)
     if ionic_count >= 2:
@@ -96,9 +115,17 @@ def detect_frontend(
 
     # Vue
     vue_signals = [
-        "data-v-", "__vue__", "vue.js", "vue.min.js",
-        "vue-router", "vuex", "__vue_app__", "createapp(",
-        "v-cloak", ":class=", "@click=",
+        "data-v-",
+        "__vue__",
+        "vue.js",
+        "vue.min.js",
+        "vue-router",
+        "vuex",
+        "__vue_app__",
+        "createapp(",
+        "v-cloak",
+        ":class=",
+        "@click=",
     ]
     vue_count = sum(1 for s in vue_signals if s in body)
     if vue_count >= 2:
@@ -108,8 +135,12 @@ def detect_frontend(
 
     # Svelte / SvelteKit
     svelte_signals = [
-        "__svelte", "svelte-", "sveltekit", "_app/immutable",
-        "data-svelte-h", "svelte/transition",
+        "__svelte",
+        "svelte-",
+        "sveltekit",
+        "_app/immutable",
+        "data-svelte-h",
+        "svelte/transition",
     ]
     svel_count = sum(1 for s in svelte_signals if s in body)
     if svel_count >= 2:
@@ -119,8 +150,11 @@ def detect_frontend(
 
     # Astro
     astro_signals = [
-        "astro-island", "astro:page-load", "_astro/",
-        "data-astro-cid", "astro.config",
+        "astro-island",
+        "astro:page-load",
+        "_astro/",
+        "data-astro-cid",
+        "astro.config",
     ]
     astro_count = sum(1 for s in astro_signals if s in body)
     if astro_count >= 1:
@@ -140,17 +174,18 @@ def detect_frontend(
 # CMS detection
 # ------------------------------------------------------------------
 
+
 def detect_cms(
     html: str,
     headers: dict[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     """
     Identify CMS and hosted website-builder platforms from HTML and optional HTTP headers.
-    
+
     Parameters:
         html (str): HTML document to scan (will be lowercased internally).
         headers (dict[str, str] | None): Optional HTTP headers to include in detection.
-    
+
     Returns:
         list[dict[str, Any]]: Candidate dictionaries describing detected platforms (including score and signal counts), ordered by descending confidence.
     """
@@ -161,17 +196,30 @@ def detect_cms(
     candidates = {
         name: new_candidate()
         for name in [
-            "WordPress", "Joomla", "Drupal", "Wix", "Shopify",
-            "Webflow", "Squarespace", "Ghost", "HubSpot",
-            "Magento", "PrestaShop", "BigCommerce",
+            "WordPress",
+            "Joomla",
+            "Drupal",
+            "Wix",
+            "Shopify",
+            "Webflow",
+            "Squarespace",
+            "Ghost",
+            "HubSpot",
+            "Magento",
+            "PrestaShop",
+            "BigCommerce",
         ]
     }
 
     # WordPress
     wp_signals = [
-        "wp-content", "wp-includes", "wordpress",
+        "wp-content",
+        "wp-includes",
+        "wordpress",
         'generator" content="wordpress',
-        "/wp-json/", "wp-block-", "wp-emoji",
+        "/wp-json/",
+        "wp-block-",
+        "wp-emoji",
     ]
     wp_count = sum(1 for s in wp_signals if s in body)
     if wp_count >= 2:
@@ -181,8 +229,12 @@ def detect_cms(
 
     # Joomla
     joomla_signals = [
-        "/media/system/js/", "com_content", "joomla!",
-        'generator" content="joomla', "/media/jui/", "joomla.document",
+        "/media/system/js/",
+        "com_content",
+        "joomla!",
+        'generator" content="joomla',
+        "/media/jui/",
+        "joomla.document",
     ]
     joomla_count = sum(1 for s in joomla_signals if s in body)
     if joomla_count >= 1:
@@ -190,9 +242,14 @@ def detect_cms(
 
     # Drupal
     drupal_signals = [
-        "/sites/default/", "/misc/drupal.js", "drupal-settings-json",
-        'generator" content="drupal', "drupal.js", "drupal.behaviors",
-        "/core/themes/", "/modules/contrib/",
+        "/sites/default/",
+        "/misc/drupal.js",
+        "drupal-settings-json",
+        'generator" content="drupal',
+        "drupal.js",
+        "drupal.behaviors",
+        "/core/themes/",
+        "/modules/contrib/",
     ]
     drupal_count = sum(1 for s in drupal_signals if s in body)
     if drupal_count >= 1:
@@ -202,13 +259,20 @@ def detect_cms(
 
     # Wix
     wix_body_signals = [
-        "wix.com", "wixstatic.com", "wix-image",
-        "siteassets", "wix-code", "parastorage.com",
-        "_wixcms", "wix-bolt", "wixapps.net",
+        "wix.com",
+        "wixstatic.com",
+        "wix-image",
+        "siteassets",
+        "wix-code",
+        "parastorage.com",
+        "_wixcms",
+        "wix-bolt",
+        "wixapps.net",
     ]
     wix_count = sum(1 for s in wix_body_signals if s in body)
     wix_header_signals = [
-        "x-wix-request-id", "x-wix-renderer-server",
+        "x-wix-request-id",
+        "x-wix-renderer-server",
         "x-wix-published-version",
     ]
     wix_header_count = sum(1 for h in wix_header_signals if h in headers)
@@ -220,12 +284,18 @@ def detect_cms(
 
     # Shopify
     shopify_body = [
-        "cdn.shopify.com", "shopify.com", "shopify",
-        "myshopify.com", "/cart.js", "shopify-section",
+        "cdn.shopify.com",
+        "shopify.com",
+        "shopify",
+        "myshopify.com",
+        "/cart.js",
+        "shopify-section",
         "shopify_analytics",
     ]
     shopify_header_keys = [
-        "x-shopid", "x-shardid", "x-sorting-hat-podid",
+        "x-shopid",
+        "x-shardid",
+        "x-sorting-hat-podid",
         "x-shopify-stage",
     ]
     shopify_body_count = sum(1 for s in shopify_body if s in body or s in hdr_blob)
@@ -238,8 +308,12 @@ def detect_cms(
 
     # Webflow
     webflow_signals = [
-        "webflow", "webflow.io", "wf-force-outline-none",
-        "data-wf-page", "data-wf-site", "js.webflow.com",
+        "webflow",
+        "webflow.io",
+        "wf-force-outline-none",
+        "data-wf-page",
+        "data-wf-site",
+        "js.webflow.com",
     ]
     wf_count = sum(1 for s in webflow_signals if s in body)
     if wf_count >= 2:
@@ -249,12 +323,19 @@ def detect_cms(
 
     # Squarespace
     sqsp_signals = [
-        "squarespace.com", "squarespace", "static1.squarespace.com",
-        "sqsp-templates", "sqsptheme", "data-layout-label",
+        "squarespace.com",
+        "squarespace",
+        "static1.squarespace.com",
+        "sqsp-templates",
+        "sqsptheme",
+        "data-layout-label",
         "squarespace-cdn.com",
     ]
     sqsp_count = sum(1 for s in sqsp_signals if s in body)
-    if "x-servedby" in headers and "squarespace" in headers.get("x-servedby", "").lower():
+    if (
+        "x-servedby" in headers
+        and "squarespace" in headers.get("x-servedby", "").lower()
+    ):
         sqsp_count += 2
     if sqsp_count >= 2:
         boost(candidates["Squarespace"], 2, min(10, 7 + sqsp_count))
@@ -263,7 +344,10 @@ def detect_cms(
 
     # Ghost
     ghost_signals = [
-        "ghost.io", "content/themes/", "ghost/", "ghost-url",
+        "ghost.io",
+        "content/themes/",
+        "ghost/",
+        "ghost-url",
         'generator" content="ghost',
     ]
     ghost_count = sum(1 for s in ghost_signals if s in body)
@@ -272,8 +356,12 @@ def detect_cms(
 
     # HubSpot CMS
     hs_signals = [
-        "hs-scripts.com", "hubspot.com", "hscta-", "hs-cta-",
-        "_hsp.push", "hubspotutk",
+        "hs-scripts.com",
+        "hubspot.com",
+        "hscta-",
+        "hs-cta-",
+        "_hsp.push",
+        "hubspotutk",
     ]
     hs_count = sum(1 for s in hs_signals if s in body)
     if "x-hs-hub-id" in headers or "hubspotutk" in headers:
@@ -285,8 +373,13 @@ def detect_cms(
 
     # Magento
     magento_signals = [
-        "magento", "mage/", "varien", "skin/frontend/",
-        "pub/static/", "requirejs/require.js", "checkout/cart/",
+        "magento",
+        "mage/",
+        "varien",
+        "skin/frontend/",
+        "pub/static/",
+        "requirejs/require.js",
+        "checkout/cart/",
     ]
     mag_count = sum(1 for s in magento_signals if s in body)
     if mag_count >= 2:
@@ -296,8 +389,12 @@ def detect_cms(
 
     # PrestaShop
     presta_signals = [
-        "prestashop", "presta-shop", "/modules/", "addons.prestashop.com",
-        "id_product", "id_category",
+        "prestashop",
+        "presta-shop",
+        "/modules/",
+        "addons.prestashop.com",
+        "id_product",
+        "id_category",
     ]
     pre_count = sum(1 for s in presta_signals if s in body)
     if pre_count >= 2:
@@ -305,8 +402,11 @@ def detect_cms(
 
     # BigCommerce
     bc_signals = [
-        "bigcommerce", "bigcommerce.com", "cdn11.bigcommerce.com",
-        "stencil-utils", "bigpay.site",
+        "bigcommerce",
+        "bigcommerce.com",
+        "cdn11.bigcommerce.com",
+        "stencil-utils",
+        "bigpay.site",
     ]
     bc_count = sum(1 for s in bc_signals if s in body)
     if bc_count >= 1:
@@ -315,8 +415,7 @@ def detect_cms(
     # Cross-CMS suppression
     strong_hosted = {"Wix", "Shopify", "Webflow", "Squarespace", "BigCommerce"}
     strong_detected = any(
-        candidates[name]["score"] >= 8 for name in strong_hosted
-        if name in candidates
+        candidates[name]["score"] >= 8 for name in strong_hosted if name in candidates
     )
     if strong_detected:
         for suppress in ("WordPress", "Drupal", "Joomla"):
