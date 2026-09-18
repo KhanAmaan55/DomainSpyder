@@ -177,6 +177,65 @@ class TestCommandHandlers:
             alive=False, brutemode="balanced", brute_only=False,
         )
 
+    def test_handle_subdomains_save_failure(self, tmp_path):
+        parser = _build_parser()
+        args = parser.parse_args(
+            ["subdomains", "example.com", "--save", str(tmp_path / "out.txt")]
+        )
+
+        with (
+            patch("domainspyder.cli.SubdomainScanner") as mock_scanner_cls,
+            patch("domainspyder.cli.print_banner"),
+            patch("domainspyder.cli.print_target"),
+            patch("domainspyder.cli.print_subdomain_table"),
+            patch("domainspyder.cli.print_total"),
+            patch("domainspyder.cli.print_saved") as mock_saved,
+            patch("domainspyder.cli.console") as mock_console,
+            patch("builtins.open", side_effect=OSError("disk full")),
+        ):
+            mock_scanner_cls.return_value.scan.return_value = {
+                "subdomains": ["www.example.com"],
+                "alive": [],
+            }
+
+            _handle_subdomains(args)
+
+        mock_saved.assert_not_called()
+        printed = " ".join(str(c.args[0]) for c in mock_console.print.call_args_list)
+        assert "Failed to save results" in printed
+        assert "disk full" in printed
+
+    def test_handle_subdomains_save_alive(self, tmp_path):
+        save_path = tmp_path / "alive.txt"
+        parser = _build_parser()
+        args = parser.parse_args(
+            ["subdomains", "example.com", "--alive", "--save", str(save_path)]
+        )
+
+        with (
+            patch("domainspyder.cli.SubdomainScanner") as mock_scanner_cls,
+            patch("domainspyder.cli.print_banner"),
+            patch("domainspyder.cli.print_target"),
+            patch("domainspyder.cli.print_subdomain_table"),
+            patch("domainspyder.cli.print_total"),
+            patch("domainspyder.cli.print_saved") as mock_saved,
+        ):
+            mock_scanner_cls.return_value.scan.return_value = {
+                "subdomains": [],
+                "alive": [
+                    {
+                        "subdomain": "www.example.com",
+                        "status": 200,
+                        "title": "Example Domain",
+                    }
+                ],
+            }
+
+            _handle_subdomains(args)
+
+        assert save_path.read_text() == "www.example.com 200 Example Domain\n"
+        mock_saved.assert_called_once_with(str(save_path))
+
     def test_handle_dns(self):
         parser = _build_parser()
         args = parser.parse_args(["dns", "example.com"])
@@ -221,6 +280,10 @@ class TestCommandHandlers:
 
             _handle_ports(args)
 
+        mock_scanner.scan.assert_called_once_with(
+            "example.com", ports=None, threads=args.threads, mode="balanced",
+        )
+
     def test_handle_tech(self):
         parser = _build_parser()
         args = parser.parse_args(["tech", "example.com"])
@@ -240,6 +303,8 @@ class TestCommandHandlers:
             }
 
             _handle_tech(args)
+
+        mock_scanner.scan.assert_called_once_with("example.com")
 
     def test_handle_info(self):
         parser = _build_parser()
