@@ -3,6 +3,11 @@
 **DomainSpyder** is a modular **domain reconnaissance and intelligence framework** built in Python.
 It is designed to perform fast, scalable, and extensible domain analysis
 
+[![CI](https://github.com/KhanAmaan55/DomainSpyder/actions/workflows/ci.yml/badge.svg)](https://github.com/KhanAmaan55/DomainSpyder/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/KhanAmaan55/DomainSpyder/actions/workflows/codeql.yml/badge.svg)](https://github.com/KhanAmaan55/DomainSpyder/actions/workflows/codeql.yml)
+[![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue.svg)](https://github.com/KhanAmaan55/DomainSpyder)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENCE)
+
 ---
 
 ## 🚀 Overview

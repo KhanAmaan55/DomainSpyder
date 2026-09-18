@@ -1,0 +1,22 @@
+# Keeps the pinned tooling fresh deliberately, via reviewable PRs, rather
+# than letting an unpinned range change CI behaviour on its own.
+# Monthly + grouped to keep PR noise low on a small project.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: monthly
+    groups:
+      dev-tooling:
+        patterns: ["ruff", "black", "mypy", "pytest*", "responses", "coverage"]
+      runtime:
+        patterns: ["requests", "httpx", "dnspython", "rich", "python-whois"]
