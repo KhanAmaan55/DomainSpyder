@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-
 import logging
 import random
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import dns.resolver
 
 from domainspyder.config import DNS_SERVERS, RESOLVER_POOL_SIZE
 from domainspyder.sources.subdomains.base import BaseSource
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 logger = logging.getLogger(__name__)
 

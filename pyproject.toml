@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# Package metadata lives in setup.py; this file carries tool configuration only.
+
+[tool.black]
+line-length = 88
+target-version = ["py39"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+
+[tool.ruff.lint]
+# Pinned explicitly so a new Ruff release cannot widen the rule set under CI.
+select = [
+    "E",      # pycodestyle errors
+    "F",      # Pyflakes
+    "I",      # isort
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "SIM",    # flake8-simplify
+    "RUF",    # Ruff-specific
+    "FURB",   # refurb
+    "PLW",    # Pylint warnings
+]
+ignore = [
+    "E501",   # line length is Black's job
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["domainspyder"]

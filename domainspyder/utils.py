@@ -6,13 +6,9 @@ Contains helpers used across multiple modules to avoid duplication.
 
 from __future__ import annotations
 
-
-import re
 import threading
-from typing import Optional
 
 import requests
-
 
 # ---------------------------------------------------------------------------
 # Thread-local HTTP session
@@ -32,6 +28,7 @@ def get_session() -> requests.Session:
 # Domain validation
 # ---------------------------------------------------------------------------
 
+
 def is_valid_subdomain(subdomain: str, parent_domain: str) -> bool:
     """
     Check whether *subdomain* is a valid child of *parent_domain*.
@@ -40,20 +37,20 @@ def is_valid_subdomain(subdomain: str, parent_domain: str) -> bool:
     that do not belong to the parent domain.
     """
     subdomain = subdomain.lower().strip()
+    parent_domain = parent_domain.lower().strip()
     if not subdomain:
         return False
-    if not subdomain.endswith(parent_domain):
+    if subdomain != parent_domain and not subdomain.endswith("." + parent_domain):
         return False
-    if "*" in subdomain or "@" in subdomain:
-        return False
-    return True
+    return not ("*" in subdomain or "@" in subdomain)
 
 
 # ---------------------------------------------------------------------------
 # Provider normalisation
 # ---------------------------------------------------------------------------
 
-def normalize_provider(value: str) -> Optional[str]:
+
+def normalize_provider(value: str) -> str | None:
     """Map a DNS record value to a canonical provider key."""
     value = value.lower()
     if "google" in value:
@@ -70,4 +67,5 @@ def normalize_provider(value: str) -> Optional[str]:
 def display_provider(key: str) -> str:
     """Return the human-friendly label for a provider key."""
     from domainspyder.config import PROVIDER_MAP
+
     return PROVIDER_MAP.get(key, key)

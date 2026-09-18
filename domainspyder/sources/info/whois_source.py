@@ -68,7 +68,8 @@ class WhoisSource(BaseInfoSource):
                 {ns.lower().rstrip(".") for ns in ns_list},
             )
             logger.debug(
-                "WHOIS: %d name servers found", len(result["name_servers"]),
+                "WHOIS: %d name servers found",
+                len(result["name_servers"]),
             )
 
         # Status codes
@@ -77,11 +78,10 @@ class WhoisSource(BaseInfoSource):
             if isinstance(statuses, str):
                 statuses = [statuses]
             # Strip URL suffix from EPP status codes
-            result["status"] = [
-                s.split(" ")[0].strip() for s in statuses
-            ]
+            result["status"] = [s.split(" ")[0].strip() for s in statuses]
             logger.debug(
-                "WHOIS: %d status codes found", len(result["status"]),
+                "WHOIS: %d status codes found",
+                len(result["status"]),
             )
 
         # Registrant info
@@ -105,7 +105,8 @@ class WhoisSource(BaseInfoSource):
             logger.debug("WHOIS: dnssec = %s", result["dnssec"])
 
         logger.debug(
-            "WHOIS: finished — %d fields extracted", len(result),
+            "WHOIS: finished — %d fields extracted",
+            len(result),
         )
         return result
 

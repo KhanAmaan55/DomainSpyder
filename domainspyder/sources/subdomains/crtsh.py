@@ -34,9 +34,14 @@ class CrtShSource(BaseSource):
             return []
 
         for entry in data:
-            for name in entry.get("name_value", "").split("\n"):
-                name = name.strip()
-                if name and name.endswith(domain) and "*" not in name and "@" not in name:
+            for raw_name in entry.get("name_value", "").split("\n"):
+                name = raw_name.strip()
+                if (
+                    name
+                    and name.endswith(domain)
+                    and "*" not in name
+                    and "@" not in name
+                ):
                     subdomains.add(name)
 
         return list(subdomains)

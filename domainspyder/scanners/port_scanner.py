@@ -16,8 +16,8 @@ from typing import Any
 
 from domainspyder.config import (
     DEFAULT_PORTS,
-    PORT_SCAN_TIMEOUT,
     PORT_SCAN_THREADS,
+    PORT_SCAN_TIMEOUT,
 )
 
 logger = logging.getLogger(__name__)
@@ -62,7 +62,7 @@ class PortScanner:
         start_time = time.time()
 
         ports = self._normalize_ports(ports or DEFAULT_PORTS)
-        
+
         grab_banner = True
 
         if mode == "fast":
@@ -72,7 +72,6 @@ class PortScanner:
 
         elif mode == "deep":
             timeout = max(timeout, 1.0)
-            threads = threads
             grab_banner = True
 
         else:  # balanced
@@ -92,7 +91,7 @@ class PortScanner:
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "error": f"Could not resolve target: {target}",
             }
-        
+
         reverse_dns = self._reverse_dns(ip)
         provider = self._detect_provider(ip, reverse_dns)
 
@@ -166,9 +165,7 @@ class PortScanner:
 
                 if result == 0:
                     banner = (
-                        self._grab_banner(ip, port, timeout)
-                        if grab_banner
-                        else "-"
+                        self._grab_banner(ip, port, timeout) if grab_banner else "-"
                     )
 
                     return {
@@ -182,7 +179,7 @@ class PortScanner:
             logger.debug("Port %d error: %s", port, exc)
 
         return None
-    
+
     def _detect_provider(self, ip: str, reverse_dns: str = "") -> str:
         """
         Detect infrastructure provider using reverse DNS + IP heuristics.
@@ -199,85 +196,85 @@ class PortScanner:
         # ------------------------------------------------------------------
         if "cloudfront" in rdns:
             return "AWS (CloudFront CDN)"
-    
+
         if "awsglobalaccelerator" in rdns:
             return "AWS (Global Accelerator)"
-    
+
         if "elb.amazonaws.com" in rdns:
             return "AWS (Elastic Load Balancer)"
-    
+
         if "compute.amazonaws.com" in rdns:
             return "AWS EC2"
-    
+
         if "amazonaws" in rdns:
             return "AWS (Amazon Web Services)"
-    
+
         # ------------------------------------------------------------------
         # GOOGLE CLOUD LOAD BALANCERS
         # ------------------------------------------------------------------
         if "googleusercontent" in rdns:
             return "Google Cloud (GCP)"
-    
+
         if "bc.googleusercontent" in rdns:
             return "Google Cloud (GCP)"
-    
+
         if "google" in rdns and "lb" in rdns:
             return "Google Cloud Load Balancer"
-    
+
         # ------------------------------------------------------------------
         # AZURE LOAD BALANCERS
         # ------------------------------------------------------------------
         if "azure" in rdns or "cloudapp.azure.com" in rdns:
             return "Microsoft Azure"
-    
+
         if "azurefd" in rdns:
             return "Azure Front Door"
-    
+
         # ------------------------------------------------------------------
         # CDN / EDGE NETWORKS
         # ------------------------------------------------------------------
         if "cloudflare" in rdns:
             return "Cloudflare CDN"
-    
+
         if "akamai" in rdns:
             return "Akamai CDN"
-        
+
         if "edgesuite" in rdns or "edgekey" in rdns:
             return "Akamai Edge"
-    
+
         if "fastly" in rdns:
             return "Fastly CDN"
-    
+
         # ------------------------------------------------------------------
         # MODERN HOSTING / EDGE PLATFORMS
         # ------------------------------------------------------------------
         if "vercel" in rdns:
             return "Vercel Edge Network"
-    
+
         if "netlify" in rdns:
             return "Netlify Edge"
-    
+
         if "heroku" in rdns:
             return "Heroku Platform"
-    
+
         if "render" in rdns:
             return "Render Platform"
-    
+
         # ------------------------------------------------------------------
         # WEBSITE BUILDERS
         # ------------------------------------------------------------------
         if "wixsite" in rdns or "wix" in rdns:
             return "Wix Hosting"
-    
+
         if "wordpress" in rdns:
             return "WordPress Hosting"
-    
+
         if "squarespace" in rdns:
             return "Squarespace"
-    
+
         if "shopify" in rdns:
             return "Shopify"
-    
+
         # ------------------------------------------------------------------
         # More Cloud Providers
         # ------------------------------------------------------------------
@@ -290,34 +287,28 @@ class PortScanner:
         if "vultr" in rdns:
             return "Vultr"
 
-
         # ------------------------------------------------------------------
         # IP FALLBACK (IMPORTANT)
         # ------------------------------------------------------------------
-    
+
         # Cloudflare
-        if ip.startswith((
-            "104.",
-            "172.64.",
-            "172.65.",
-            "188.114.",
-            "162.158.",
-            "162.159."
-        )):
+        if ip.startswith(
+            ("104.", "172.64.", "172.65.", "188.114.", "162.158.", "162.159.")
+        ):
             return "Cloudflare CDN"
-    
+
         # AWS
         if ip.startswith(("13.", "15.", "18.", "52.", "54.")):
             return "AWS (Amazon Web Services)"
-    
+
         # GCP
         if ip.startswith(("34.", "35.")):
             return "Google Cloud (GCP)"
-    
+
         # Azure (rough)
         if ip.startswith(("20.", "40.", "51.", "52.")):
             return "Microsoft Azure"
-    
+
         # ------------------------------------------------------------------
         return "Unknown"
 
@@ -365,7 +356,7 @@ class PortScanner:
             insights.append("[INFO] Multiple services exposed (broad attack surface)")
 
         return insights
-    
+
     def _grab_banner(self, ip: str, port: int, timeout: float) -> str:
         """Basic banner grabbing (safe + non-blocking)."""
         try:

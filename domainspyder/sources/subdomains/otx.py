@@ -18,7 +18,9 @@ class OTXSource(BaseSource):
         return "otx"
 
     def fetch(self, domain: str) -> list[str]:
-        url = f"https://otx.alienvault.com/api/v1/indicators/domain/{domain}/passive_dns"
+        url = (
+            f"https://otx.alienvault.com/api/v1/indicators/domain/{domain}/passive_dns"
+        )
         subdomains: set[str] = set()
 
         response = requests.get(url, timeout=REQUEST_TIMEOUT, headers=HEADERS)

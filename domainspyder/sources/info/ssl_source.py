@@ -47,7 +47,9 @@ class SslSource:
         try:
             results = self.fetch(domain)
             logger.debug(
-                "%s: returned %d fields", self.name, len(results),
+                "%s: returned %d fields",
+                self.name,
+                len(results),
             )
             return results
         except Exception as exc:
@@ -96,17 +98,23 @@ class SslSource:
                 context.check_hostname = False
                 context.verify_mode = ssl.CERT_NONE
 
-            with socket.create_connection(
-                (domain, 443), timeout=WHOIS_TIMEOUT,
-            ) as sock:
-                with context.wrap_socket(
-                    sock, server_hostname=domain,
-                ) as ssock:
-                    return ssock.getpeercert()
+            with (
+                socket.create_connection(
+                    (domain, 443),
+                    timeout=WHOIS_TIMEOUT,
+                ) as sock,
+                context.wrap_socket(
+                    sock,
+                    server_hostname=domain,
+                ) as ssock,
+            ):
+                return ssock.getpeercert()
 
         except Exception as exc:
             logger.debug(
-                "SSL: connect (verify=%s) failed: %s", verify, exc,
+                "SSL: connect (verify=%s) failed: %s",
+                verify,
+                exc,
             )
             return None
 
@@ -121,7 +129,8 @@ class SslSource:
         # Issuer
         issuer = self._extract_cert_field(cert.get("issuer", ()), "commonName")
         issuer_org = self._extract_cert_field(
-            cert.get("issuer", ()), "organizationName",
+            cert.get("issuer", ()),
+            "organizationName",
         )
         if issuer:
             result["ssl_issuer"] = issuer
@@ -132,7 +141,8 @@ class SslSource:
 
         # Subject
         subject_cn = self._extract_cert_field(
-            cert.get("subject", ()), "commonName",
+            cert.get("subject", ()),
+            "commonName",
         )
         if subject_cn:
             result["ssl_subject"] = subject_cn
@@ -156,7 +166,8 @@ class SslSource:
                 result["ssl_days_remaining"] = max(days_remaining, 0)
                 logger.debug(
                     "SSL: valid until = %s (%d days remaining)",
-                    result["ssl_valid_until"], result["ssl_days_remaining"],
+                    result["ssl_valid_until"],
+                    result["ssl_days_remaining"],
                 )
 
         # Subject Alternative Names (SANs)
@@ -172,7 +183,8 @@ class SslSource:
             result["ssl_serial"] = serial
 
         logger.debug(
-            "SSL: finished — %d fields extracted", len(result),
+            "SSL: finished — %d fields extracted",
+            len(result),
         )
         return result
 

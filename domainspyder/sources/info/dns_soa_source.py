@@ -62,15 +62,19 @@ class DnsSoaSource:
 
             logger.debug(
                 "DNS SOA: serial=%d, refresh=%d, retry=%d, expire=%d, min_ttl=%d",
-                rdata.serial, rdata.refresh, rdata.retry,
-                rdata.expire, rdata.minimum,
+                rdata.serial,
+                rdata.refresh,
+                rdata.retry,
+                rdata.expire,
+                rdata.minimum,
             )
 
             # Only process the first SOA record (there should only be one)
             break
 
         logger.debug(
-            "DNS SOA: finished — %d fields extracted", len(result),
+            "DNS SOA: finished — %d fields extracted",
+            len(result),
         )
         return result
 
@@ -82,7 +86,9 @@ class DnsSoaSource:
         try:
             results = self.fetch(domain)
             logger.debug(
-                "%s: returned %d fields", self.name, len(results),
+                "%s: returned %d fields",
+                self.name,
+                len(results),
             )
             return results
         except Exception as exc:

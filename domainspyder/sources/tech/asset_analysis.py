@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -38,20 +37,22 @@ _GENERATOR_MAP: dict[str, str] = {
 def detect_from_meta_tags(html: str) -> tuple[str | None, str | None]:
     """
     Extract the content of a <meta name="generator"> tag and, if possible, map it to a canonical CMS/framework name.
-    
+
     Searches the HTML for a generator meta tag (attribute order-insensitive). If found, returns a tuple containing the raw generator string and a canonical name when a known keyword is present in the generator content.
-    
+
     Returns:
         tuple[str | None, str | None]: (raw_generator_string, matched_cms_name) where `matched_cms_name` is the canonical name if a known keyword was detected in the generator content; returns (None, None) if no generator meta tag is present.
     """
     match = re.search(
         r'<meta[^>]+name=["\']generator["\'][^>]+content=["\']([^"\']+)["\']',
-        html, re.IGNORECASE,
+        html,
+        re.IGNORECASE,
     )
     if not match:
         match = re.search(
             r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+name=["\']generator["\']',
-            html, re.IGNORECASE,
+            html,
+            re.IGNORECASE,
         )
     if not match:
         return None, None
@@ -104,10 +105,10 @@ _SCRIPT_PATTERNS: list[tuple[str, str]] = [
 def detect_from_script_sources(scripts: list[str]) -> list[str]:
     """
     Detect bundlers, frameworks, and libraries from a list of script `src` URLs.
-    
+
     Parameters:
         scripts (list[str]): Script `src` URLs to scan (each URL or path as a string).
-    
+
     Returns:
         list[str]: Ordered list of detected technology labels. Labels may repeat if multiple matching patterns are found; returns an empty list when no matches are found.
     """
@@ -152,10 +153,10 @@ _CSS_PATTERNS: list[tuple[str, str]] = [
 def detect_from_stylesheets(stylesheets: list[str]) -> list[str]:
     """
     Detect UI/CSS libraries referenced by stylesheet hrefs.
-    
+
     Parameters:
         stylesheets (list[str]): List of stylesheet href URLs or paths to examine.
-    
+
     Returns:
         list[str]: Detected technology labels (each label appears at most once) in detection order.
     """
@@ -177,14 +178,15 @@ def detect_from_stylesheets(stylesheets: list[str]) -> list[str]:
 # Secondary / "other" technologies
 # ------------------------------------------------------------------
 
+
 def detect_other(headers: dict[str, str], body: str) -> list[str]:
     """
     Detects third-party frameworks, tools, and libraries by scanning HTTP response headers and the HTML response body.
-    
+
     Parameters:
         headers (dict[str, str]): HTTP response headers (case-sensitive keys as received).
         body (str): HTML response body and any inlined/script content.
-    
+
     Returns:
         list[str]: Sorted list of unique technology labels discovered (e.g., "Next.js", "Google Analytics", "Stripe").
     """
@@ -209,7 +211,9 @@ def detect_other(headers: dict[str, str], body: str) -> list[str]:
     # Analytics & tag management
     if any(t in body for t in ["googletagmanager.com", "gtag(", "gtm.js"]):
         found.add("Google Tag Manager")
-    if any(t in body for t in ["google-analytics.com", "ga.js", "analytics.js", "gtag/js"]):
+    if any(
+        t in body for t in ["google-analytics.com", "ga.js", "analytics.js", "gtag/js"]
+    ):
         found.add("Google Analytics")
     if "plausible.io" in body:
         found.add("Plausible Analytics")
@@ -266,14 +270,17 @@ def detect_other(headers: dict[str, str], body: str) -> list[str]:
 
     # UI libraries
     jquery_count = sum(
-        1 for t in ["jquery.min.js", "jquery.js", "window.jquery", "jquery/jquery"]
+        1
+        for t in ["jquery.min.js", "jquery.js", "window.jquery", "jquery/jquery"]
         if t in body
     )
     if jquery_count >= 1:
         found.add("jQuery")
     if "bootstrap" in body and re.search(r"bootstrap(\.min)?\.(css|js)", body):
         found.add("Bootstrap")
-    if "tailwind" in body and re.search(r"tailwind(\.min)?\.(css|js)|cdn\.tailwindcss\.com", body):
+    if "tailwind" in body and re.search(
+        r"tailwind(\.min)?\.(css|js)|cdn\.tailwindcss\.com", body
+    ):
         found.add("Tailwind CSS")
     if "bulma" in body and "bulma.io" in body:
         found.add("Bulma")
