@@ -16,6 +16,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -38,7 +40,8 @@ jobs:
         run: black --check --diff domainspyder/
 
       - name: Type check with mypy
-        run: mypy domainspyder/ || true
+        continue-on-error: true
+        run: mypy domainspyder/
 
       - name: Run tests with coverage
         run: |
