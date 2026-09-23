@@ -1,0 +1,6 @@
+name: DomainSpyder CodeQL config
+
+# Test assertions such as `assert "www.example.com" in results` trip the
+# py/incomplete-url-substring-sanitization query; tests are not attack surface.
+paths-ignore:
+  - tests
