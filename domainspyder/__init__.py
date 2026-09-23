@@ -12,6 +12,6 @@ warnings.filterwarnings(
     message=r"urllib3 v2 only supports OpenSSL 1.1.1\+.*",
 )
 
-from domainspyder.config import VERSION  # noqa: E402
+from domainspyder._version import __version__  # noqa: E402
 
-__version__ = VERSION
+__all__ = ["__version__"]

@@ -9,6 +9,7 @@ are alive.
 from __future__ import annotations
 
 import logging
+import os
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -21,6 +22,8 @@ from domainspyder.config import (
     BRUTE_CONFIG,
     DEFAULT_BRUTE_MODE,
     DEFAULT_THREADS,
+    DEFAULT_WORDLIST,
+    HEADERS,
 )
 from domainspyder.sources.subdomains import ALL_PASSIVE_SOURCES
 from domainspyder.sources.subdomains.bruteforce import BruteForceSource
@@ -36,20 +39,17 @@ class SubdomainScanner:
     Usage::
 
         scanner = SubdomainScanner(debug=True)
-        results = scanner.scan(
-            "example.com",
-            wordlist="wordlists/default.txt",
-            alive=True,
-        )
+        results = scanner.scan("example.com", alive=True)
     """
 
     def __init__(self, *, debug: bool = False) -> None:
         self._debug = debug
+        self._wildcard_ips: set[str] = set()
 
     def scan(
         self,
         domain: str,
-        wordlist: str,
+        wordlist: str | None = None,
         threads: int = DEFAULT_THREADS,
         *,
         alive: bool = False,
@@ -61,7 +61,14 @@ class SubdomainScanner:
 
         Returns a structured dictionary containing all discovered
         subdomains and, when requested, alive HTTP probe results.
+        ``wordlist`` defaults to the bundled list.  Raises
+        ``FileNotFoundError`` if the wordlist does not exist.
         """
+        wordlist = wordlist or DEFAULT_WORDLIST
+        if not os.path.isfile(wordlist):
+            raise FileNotFoundError(f"Wordlist not found: {wordlist}")
+        self._wildcard_ips = set()
+
         if brute_only:
             brute_subs = self._run_bruteforce(
                 domain,
@@ -99,6 +106,7 @@ class SubdomainScanner:
             "count": len(subdomains),
             "subdomains": subdomains,
             "alive": alive_results,
+            "wildcard_ips": sorted(self._wildcard_ips),
         }
 
     def _run_bruteforce(
@@ -126,7 +134,9 @@ class SubdomainScanner:
             threads=threads,
             delay=delay,
         )
-        return source.safe_fetch(domain)
+        results = source.safe_fetch(domain)
+        self._wildcard_ips = source.wildcard_ips
+        return results
 
     def _run_combined(
         self,
@@ -135,21 +145,21 @@ class SubdomainScanner:
         threads: int,
     ) -> tuple[list[str], list[str]]:
         """Run passive sources + brute-force concurrently."""
+        brute_source = BruteForceSource(
+            wordlist_path=wordlist,
+            threads=threads,
+            delay=0.001,
+        )
         with ThreadPoolExecutor(max_workers=2) as executor:
             future_passive = executor.submit(
                 self._fetch_passive_sources,
                 domain,
             )
-            future_brute = executor.submit(
-                BruteForceSource(
-                    wordlist_path=wordlist,
-                    threads=threads,
-                    delay=0.001,
-                ).safe_fetch,
-                domain,
-            )
+            future_brute = executor.submit(brute_source.safe_fetch, domain)
             passive = future_passive.result()
             brute = future_brute.result()
+
+        self._wildcard_ips = brute_source.wildcard_ips
 
         return brute, passive
 
@@ -192,7 +202,6 @@ class SubdomainScanner:
     def _probe(self, subdomain: str) -> dict | None:
         """Try HTTP then HTTPS; return info dict or ``None``."""
         session = get_session()
-        headers = {"User-Agent": "DomainSpyder"}
 
         for scheme in ("https", "http"):
             url = f"{scheme}://{subdomain}"
@@ -202,7 +211,7 @@ class SubdomainScanner:
                     url,
                     timeout=ALIVE_TIMEOUT,
                     allow_redirects=True,
-                    headers=headers,
+                    headers=HEADERS,
                 )
 
                 match = re.search(

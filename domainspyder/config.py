@@ -5,7 +5,10 @@ Centralizes all configuration values, constants, and mappings
 used throughout the application.
 """
 
-VERSION = "0.9.0"
+from pathlib import Path
+
+from domainspyder._version import __version__ as VERSION
+
 APP_NAME = "DOMAIN SPYDER"
 DESCRIPTION = "Domain Intelligence Framework"
 AUTHOR = "Amaan Khan"
@@ -39,11 +42,14 @@ BRUTE_CONFIG = {
 DEFAULT_BRUTE_MODE = "balanced"
 DEFAULT_THREADS = 50
 
+# Random labels resolved before brute-forcing to detect wildcard DNS.
+WILDCARD_PROBES = 3
+
 # ---------------------------------------------------------------------------
 # HTTP
 # ---------------------------------------------------------------------------
 
-HEADERS = {"User-Agent": "DomainSpyder/2.0"}
+HEADERS = {"User-Agent": f"DomainSpyder/{VERSION}"}
 REQUEST_TIMEOUT = 10
 ALIVE_TIMEOUT = 3
 ALIVE_DELAY = 0.005
@@ -63,7 +69,8 @@ PROVIDER_MAP = {
 # Default Wordlist
 # ---------------------------------------------------------------------------
 
-DEFAULT_WORDLIST = "wordlists/default.txt"
+# Shipped inside the package so it resolves regardless of the working directory.
+DEFAULT_WORDLIST = str(Path(__file__).resolve().parent / "wordlists" / "default.txt")
 
 # ---------------------------------------------------------------------------
 # Port Scanning

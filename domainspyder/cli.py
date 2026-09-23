@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import warnings
+from collections.abc import Callable
 from typing import Any
 
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -53,8 +55,57 @@ from domainspyder.scanners.info_scanner import InfoScanner
 from domainspyder.scanners.port_scanner import PortScanner
 from domainspyder.scanners.subdomain_scanner import SubdomainScanner
 from domainspyder.scanners.tech_scanner import TechScanner
+from domainspyder.utils import (
+    normalize_domain,
+    normalize_host,
+    normalize_url_target,
+    parse_ports,
+)
 
 warnings.simplefilter("ignore")
+
+# Exit codes: 0 = scan ran (even with no findings), 1 = scan or export
+# failed, 2 = invalid arguments (argparse), 130 = interrupted.
+EXIT_OK = 0
+EXIT_FAILURE = 1
+
+
+# ------------------------------------------------------------------
+# Argument types
+# ------------------------------------------------------------------
+
+
+def _arg_type(func: Callable[[str], Any], name: str) -> Callable[[str], Any]:
+    """Adapt a ``ValueError``-raising parser into an argparse type."""
+
+    def convert(value: str) -> Any:
+        try:
+            return func(value)
+        except ValueError as exc:
+            raise argparse.ArgumentTypeError(str(exc)) from None
+
+    convert.__name__ = name
+    return convert
+
+
+def _positive_int(value: str) -> int:
+    if not value.strip().isdigit() or int(value) < 1:
+        raise ValueError(f"expected a positive integer, got '{value}'")
+    return int(value)
+
+
+def _existing_file(value: str) -> str:
+    if not os.path.isfile(value):
+        raise ValueError(f"wordlist not found: '{value}'")
+    return value
+
+
+_domain_arg = _arg_type(normalize_domain, "domain")
+_host_arg = _arg_type(normalize_host, "host")
+_url_target_arg = _arg_type(normalize_url_target, "target")
+_ports_arg = _arg_type(parse_ports, "port list")
+_threads_arg = _arg_type(_positive_int, "thread count")
+_wordlist_arg = _arg_type(_existing_file, "wordlist")
 
 
 # ------------------------------------------------------------------
@@ -67,6 +118,11 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="domainspyder",
         description=f"{APP_NAME} v{VERSION} - {DESCRIPTION}",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {VERSION}",
     )
     parser.add_argument(
         "--debug",
@@ -101,17 +157,18 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # ---- subdomains command ------------------------------------------
     sub = subparsers.add_parser("subdomains", help="Subdomain enumeration")
-    sub.add_argument("domain", help="Target domain")
+    sub.add_argument("domain", type=_domain_arg, help="Target domain")
     add_output_argument(sub)
     sub.add_argument(
         "--wordlist",
-        default=DEFAULT_WORDLIST,
-        help=f"Path to wordlist (default: {DEFAULT_WORDLIST})",
+        type=_wordlist_arg,
+        default=None,
+        help=f"Path to wordlist (default: bundled {os.path.basename(DEFAULT_WORDLIST)})",
     )
     sub.add_argument("--save", help="Save results to file")
     sub.add_argument(
         "--threads",
-        type=int,
+        type=_threads_arg,
         default=DEFAULT_THREADS,
         help=f"Number of threads (default: {DEFAULT_THREADS})",
     )
@@ -134,7 +191,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # ---- dns command -------------------------------------------------
     dns_cmd = subparsers.add_parser("dns", help="DNS record enumeration")
-    dns_cmd.add_argument("domain", help="Target domain")
+    dns_cmd.add_argument("domain", type=_domain_arg, help="Target domain")
     add_output_argument(dns_cmd)
     dns_cmd.add_argument(
         "--raw-only",
@@ -144,9 +201,15 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # ---- ports command -------------------------------------------------
     ports_cmd = subparsers.add_parser("ports", help="Port scanning")
-    ports_cmd.add_argument("target", help="Target domain")
+    ports_cmd.add_argument(
+        "target", type=_host_arg, help="Target domain or IPv4 address"
+    )
     add_output_argument(ports_cmd)
-    ports_cmd.add_argument("--ports", help="Custom ports (comma-separated)")
+    ports_cmd.add_argument(
+        "--ports",
+        type=_ports_arg,
+        help="Custom ports (comma-separated, e.g. 22,80,443)",
+    )
     ports_cmd.add_argument("--top-100", action="store_true")
     ports_cmd.add_argument("--top-1000", action="store_true")
     ports_cmd.add_argument("--full", action="store_true")
@@ -154,19 +217,19 @@ def _build_parser() -> argparse.ArgumentParser:
     ports_cmd.add_argument("--deep", action="store_true", help="Deep scan mode")
     ports_cmd.add_argument(
         "--threads",
-        type=int,
+        type=_threads_arg,
         default=50,
         help="Number of threads (default: 50)",
     )
 
     # ---- tech command --------------------------------------------------
     tech_cmd = subparsers.add_parser("tech", help="Technology detection")
-    tech_cmd.add_argument("target", help="Target domain")
+    tech_cmd.add_argument("target", type=_url_target_arg, help="Target domain or URL")
     add_output_argument(tech_cmd)
 
     # ---- info command --------------------------------------------------
     info_cmd = subparsers.add_parser("info", help="WHOIS + domain info")
-    info_cmd.add_argument("domain", help="Target domain")
+    info_cmd.add_argument("domain", type=_domain_arg, help="Target domain")
     add_output_argument(info_cmd)
     info_cmd.add_argument(
         "--brief",
@@ -196,21 +259,34 @@ def _maybe_save_report(
     data: dict[str, Any],
     output_path: str | None,
     html_theme: str = "light",
-) -> None:
-    """Save a structured report if the user requested one."""
+) -> bool:
+    """Save a structured report if requested; return ``False`` on failure."""
     if not output_path:
-        return
+        return True
 
     try:
         saved_path = save_report(data, output_path, html_theme=html_theme)
     except ExportError as exc:
         console.print(f"  [red]Report export failed:[/red] {exc}\n")
-        return
+        return False
 
     console.print(f"  [green]✓[/green] Report saved: {saved_path}\n")
+    return True
 
 
-def _handle_subdomains(args: argparse.Namespace) -> None:
+def _report_exit(
+    data: dict[str, Any],
+    output_path: str | None,
+    html_theme: str,
+    *,
+    failed: bool = False,
+) -> int:
+    """Save the report (if requested) and pick the exit code."""
+    saved = _maybe_save_report(data, output_path, html_theme)
+    return EXIT_FAILURE if failed or not saved else EXIT_OK
+
+
+def _handle_subdomains(args: argparse.Namespace) -> int:
     """Run subdomain enumeration and display results."""
     print_banner()
     print_target(args.domain, mode="subdomains")
@@ -242,8 +318,18 @@ def _handle_subdomains(args: argparse.Namespace) -> None:
 
     results = data["alive"] if args.alive else data["subdomains"]
 
+    wildcard_ips = data.get("wildcard_ips") or []
+    if wildcard_ips:
+        console.print(
+            f"  [yellow]Wildcard DNS detected[/yellow] (*.{args.domain} -> "
+            f"{', '.join(wildcard_ips)}); brute-force hits matching it were "
+            "discarded.\n"
+        )
+
     print_subdomain_table(results, alive=args.alive)
     print_total(len(results))
+
+    exit_code = EXIT_OK
 
     if args.save:
         try:
@@ -257,13 +343,14 @@ def _handle_subdomains(args: argparse.Namespace) -> None:
                     fh.write("\n".join(results))
         except OSError as exc:
             console.print(f"  [red]Failed to save results:[/red] {exc}\n")
+            exit_code = EXIT_FAILURE
         else:
             print_saved(args.save)
 
-    _maybe_save_report(data, args.output, args.html_theme)
+    return _report_exit(data, args.output, args.html_theme, failed=exit_code != EXIT_OK)
 
 
-def _handle_dns(args: argparse.Namespace) -> None:
+def _handle_dns(args: argparse.Namespace) -> int:
     """Run DNS enumeration and display results."""
     print_banner()
     print_target(args.domain, mode="dns")
@@ -282,18 +369,17 @@ def _handle_dns(args: argparse.Namespace) -> None:
 
     if not records:
         console.print("  [red]No DNS records found.[/red]\n")
-        _maybe_save_report(data, args.output, args.html_theme)
-        return
+        return _report_exit(data, args.output, args.html_theme)
 
     print_dns_records(records)
     if not args.raw_only:
         print_dns_insights(data["analysis"])
         print_security_score(data["security_score"])
 
-    _maybe_save_report(data, args.output, args.html_theme)
+    return _report_exit(data, args.output, args.html_theme)
 
 
-def _handle_ports(args: argparse.Namespace) -> None:
+def _handle_ports(args: argparse.Namespace) -> int:
     """Run port scanning and display results."""
     print_banner()
     print_target(args.target, mode="ports")
@@ -307,11 +393,8 @@ def _handle_ports(args: argparse.Namespace) -> None:
     elif args.full:
         ports = FULL_PORT_RANGE
     elif args.ports:
-        try:
-            ports = [int(p.strip()) for p in args.ports.split(",")]
-        except ValueError:
-            console.print("[red]Invalid port list format.[/red]")
-            return
+        ports = args.ports
+
     mode = "balanced"
 
     if args.fast:
@@ -335,21 +418,23 @@ def _handle_ports(args: argparse.Namespace) -> None:
             mode=mode,
         )
 
-    if not data or not data.get("open_ports"):
+    if data.get("error"):
+        console.print(f"  [red]Port scan failed:[/red] {data['error']}\n")
+        return _report_exit(data, args.output, args.html_theme, failed=True)
+
+    if not data.get("open_ports"):
         console.print("  [red]No open ports found.[/red]\n")
-        if data:
-            _maybe_save_report(data, args.output, args.html_theme)
-        return
+        return _report_exit(data, args.output, args.html_theme)
 
     print_port_summary(data)
     print_port_table(data["open_ports"])
     if data.get("insights"):
         print_port_insights(data["insights"])
 
-    _maybe_save_report(data, args.output, args.html_theme)
+    return _report_exit(data, args.output, args.html_theme)
 
 
-def _handle_tech(args: argparse.Namespace) -> None:
+def _handle_tech(args: argparse.Namespace) -> int:
     """Run technology detection and display results."""
     print_banner()
     print_target(args.target, mode="tech")
@@ -366,18 +451,17 @@ def _handle_tech(args: argparse.Namespace) -> None:
             data = scanner.scan(args.target)
     except KeyboardInterrupt:
         console.print("\n  [yellow]Scan aborted by user (Ctrl+C).[/yellow]\n")
-        return
+        return 130
 
     if data.get("error"):
         console.print(f"  [red]Technology scan failed:[/red] {data['error']}\n")
-        _maybe_save_report(data, args.output, args.html_theme)
-        return
+        return _report_exit(data, args.output, args.html_theme, failed=True)
 
     print_tech_summary(data)
-    _maybe_save_report(data, args.output, args.html_theme)
+    return _report_exit(data, args.output, args.html_theme)
 
 
-def _handle_info(args: argparse.Namespace) -> None:
+def _handle_info(args: argparse.Namespace) -> int:
     """Run domain info lookup and display results."""
     print_banner()
     print_target(args.domain, mode="info")
@@ -400,12 +484,11 @@ def _handle_info(args: argparse.Namespace) -> None:
             )
     except KeyboardInterrupt:
         console.print("\n  [yellow]Scan aborted by user (Ctrl+C).[/yellow]\n")
-        return
+        return 130
 
     if data.get("error"):
         console.print(f"  [red]Domain info failed:[/red] {data['error']}\n")
-        _maybe_save_report(data, args.output, args.html_theme)
-        return
+        return _report_exit(data, args.output, args.html_theme, failed=True)
 
     # Always show the main summary
     print_info_summary(data)
@@ -431,7 +514,7 @@ def _handle_info(args: argparse.Namespace) -> None:
     if data.get("insights"):
         print_info_insights(data["insights"])
 
-    _maybe_save_report(data, args.output, args.html_theme)
+    return _report_exit(data, args.output, args.html_theme)
 
 
 # ------------------------------------------------------------------
@@ -439,7 +522,7 @@ def _handle_info(args: argparse.Namespace) -> None:
 # ------------------------------------------------------------------
 
 
-def main() -> None:
+def main() -> int:
     """CLI entry point invoked by the ``domainspyder`` console script."""
     parser = _build_parser()
     args = parser.parse_args()
@@ -465,14 +548,12 @@ def main() -> None:
         "tech": _handle_tech,
         "info": _handle_info,
     }
-    handler = handlers.get(args.command)
-    if handler:
-        try:
-            handler(args)
-        except KeyboardInterrupt:
-            console.print("\n  [yellow]Aborted by user.[/yellow]\n")
-            raise SystemExit(130) from None
+    try:
+        return handlers[args.command](args)
+    except KeyboardInterrupt:
+        console.print("\n  [yellow]Aborted by user.[/yellow]\n")
+        raise SystemExit(130) from None
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

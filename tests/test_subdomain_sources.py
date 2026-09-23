@@ -163,5 +163,42 @@ class TestBruteForceSource:
         result = source.safe_fetch("example.com")
         assert result == []
 
+    def test_wildcard_matches_are_discarded(self, mock_wordlist):
+        import dns.resolver
 
+        def rdata(ip):
+            record = MagicMock()
+            record.to_text.return_value = ip
+            return record
 
+        def resolve_side(subdomain, record_type):
+            # www has its own address; every other name hits the wildcard.
+            if subdomain == "www.example.com":
+                return [rdata("93.184.216.34")]
+            return [rdata("10.0.0.1")]
+
+        source = BruteForceSource(wordlist_path=mock_wordlist, threads=2, delay=0)
+        with patch("dns.resolver.Resolver") as mock_resolver_cls:
+            mock_resolver_cls.return_value.resolve.side_effect = resolve_side
+            results = source.fetch("example.com")
+
+        assert results == ["www.example.com"]
+        assert source.wildcard_ips == {"10.0.0.1"}
+
+    def test_no_wildcard_when_random_labels_fail(self, mock_wordlist):
+        import dns.resolver
+
+        def resolve_side(subdomain, record_type):
+            if subdomain.split(".")[0] in ("www", "mail"):
+                record = MagicMock()
+                record.to_text.return_value = "10.0.0.1"
+                return [record]
+            raise dns.resolver.NXDOMAIN
+
+        source = BruteForceSource(wordlist_path=mock_wordlist, threads=2, delay=0)
+        with patch("dns.resolver.Resolver") as mock_resolver_cls:
+            mock_resolver_cls.return_value.resolve.side_effect = resolve_side
+            results = source.fetch("example.com")
+
+        assert sorted(results) == ["mail.example.com", "www.example.com"]
+        assert source.wildcard_ips == set()
