@@ -174,6 +174,22 @@ DomainSpyder is a **multi-command CLI framework** that helps you:
 
 ## 📦 Installation
 
+Requires Python 3.9 or newer.
+
+### 📥 From PyPI
+
+```bash
+pipx install domainspyder     # recommended: isolated, puts `domainspyder` on your PATH
+# or
+pip install domainspyder
+```
+
+Check the install:
+
+```bash
+domainspyder --version
+```
+
 ### 🔧 From Source
 
 ```bash
@@ -183,7 +199,8 @@ cd DomainSpyder
 python3 -m venv venv
 source venv/bin/activate
 
-pip install -e .
+pip install --upgrade pip     # editable installs need pip >= 21.3
+pip install -e ".[dev]"
 ```
 
 > Using `-e` (editable mode) is recommended during development.
@@ -191,6 +208,20 @@ pip install -e .
 ---
 
 ## ▶️ Usage
+
+### Targets & Exit Codes
+
+Targets are normalised before scanning, so `https://Example.com/path`,
+`example.com.` and `example.com:8443` all scan `example.com`.
+`subdomains`, `dns` and `info` need a domain name; `ports` also accepts an
+IPv4 address, and `tech` accepts a full URL (the path is kept).
+
+| Exit code | Meaning                                                        |
+| --------- | -------------------------------------------------------------- |
+| `0`       | Scan completed (including scans that found nothing)            |
+| `1`       | Scan failed (e.g. target did not resolve) or saving/export failed |
+| `2`       | Invalid arguments (bad domain, port list, thread count, wordlist) |
+| `130`     | Interrupted with Ctrl+C                                         |
 
 ### Structured Reports
 
@@ -251,6 +282,11 @@ domainspyder subdomains example.com --brute-only
 - Skips all passive sources
 - Runs only dictionary-based DNS brute force
 - Uses **balanced mode** by default (50 threads, 0.005s delay)
+
+> 🃏 **Wildcard DNS:** before brute-forcing, DomainSpyder resolves a few random
+> labels. If the domain answers for names that don't exist (`*.example.com`),
+> brute-force hits that resolve only to those wildcard addresses are discarded,
+> and the scan tells you a wildcard was detected.
 
 ---
 
@@ -740,9 +776,12 @@ domainspyder --debug dns target.com --raw-only
 domainspyder/
 ├── __init__.py              # Package initialization
 ├── __main__.py              # Entry point for 'python -m domainspyder'
+├── _version.py              # Single source of truth for the version
 ├── cli.py                   # CLI entry point, argument parsing, command routing
 ├── config.py                # Configuration & constants (DNS servers, brute modes, providers)
-├── utils.py                 # Utilities (HTTP session pooling, domain validation, provider mapping)
+├── utils.py                 # Utilities (HTTP session pooling, input normalisation, provider mapping)
+├── wordlists/
+│   └── default.txt          # Bundled subdomain wordlist (~110 common names)
 │
 ├── scanners/                # Core scanning logic
 │   ├── __init__.py
@@ -790,11 +829,8 @@ domainspyder/
     ├── formatter.py         # Rich terminal output (tables, panels, progress)
     └── themes.py            # Color themes & semantic styling
 
-wordlists/
-└── default.txt              # Default subdomain wordlist (~50 common subdomains)
-
-requirements.txt             # Project dependencies (alternative to setup.py)
-setup.py                     # Package configuration & installation
+pyproject.toml               # Package metadata, dependencies & tool configuration
+requirements.txt             # Dev shortcut: installs the package editable with dev extras
 README.md                    # This file
 LICENCE                      # License information
 ```

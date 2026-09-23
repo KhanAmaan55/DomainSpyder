@@ -9,52 +9,52 @@ from domainspyder.sources.subdomains.bruteforce import BruteForceSource
 
 
 class TestSubdomainScanner:
-    def test_scan_returns_structured_result(self):
+    def test_scan_returns_structured_result(self, mock_wordlist):
         scanner = SubdomainScanner()
         with (
             patch.object(scanner, "_run_combined", return_value=([], ["www.example.com", "mail.example.com"])),
         ):
-            result = scanner.scan("example.com", wordlist="dummy.txt", threads=5)
+            result = scanner.scan("example.com", wordlist=mock_wordlist, threads=5)
         assert result["command"] == "subdomains"
         assert result["target"] == "example.com"
         assert len(result["subdomains"]) == 2
         assert "timestamp" in result
 
-    def test_scan_deduplicates(self):
+    def test_scan_deduplicates(self, mock_wordlist):
         scanner = SubdomainScanner()
         with (
             patch.object(scanner, "_run_combined", return_value=(["www.example.com"], ["www.example.com", "mail.example.com"])),
         ):
-            result = scanner.scan("example.com", wordlist="dummy.txt", threads=5)
+            result = scanner.scan("example.com", wordlist=mock_wordlist, threads=5)
         assert result["count"] == 2
         assert result["subdomains"] == ["mail.example.com", "www.example.com"]
 
-    def test_scan_filters_invalid(self):
+    def test_scan_filters_invalid(self, mock_wordlist):
         scanner = SubdomainScanner()
         with (
             patch.object(scanner, "_run_combined", return_value=(["*.example.com", "@.example.com", "www.example.com"], [])),
         ):
-            result = scanner.scan("example.com", wordlist="dummy.txt", threads=5)
+            result = scanner.scan("example.com", wordlist=mock_wordlist, threads=5)
         assert "*.example.com" not in result["subdomains"]
         assert "www.example.com" in result["subdomains"]
 
-    def test_scan_brute_only(self):
+    def test_scan_brute_only(self, mock_wordlist):
         scanner = SubdomainScanner()
         with (
             patch.object(scanner, "_run_bruteforce", return_value=["www.example.com", "mail.example.com"]),
         ):
             result = scanner.scan(
-                "example.com", wordlist="dummy.txt", threads=5, brute_only=True,
+                "example.com", wordlist=mock_wordlist, threads=5, brute_only=True,
             )
         assert result["count"] == 2
 
-    def test_scan_alive_probing(self):
+    def test_scan_alive_probing(self, mock_wordlist):
         scanner = SubdomainScanner()
         with (
             patch.object(scanner, "_run_combined", return_value=([], ["www.example.com"])),
             patch.object(scanner, "_check_alive", return_value=[{"subdomain": "www.example.com", "status": 200, "server": "nginx", "title": "Test"}]),
         ):
-            result = scanner.scan("example.com", wordlist="dummy.txt", threads=5, alive=True)
+            result = scanner.scan("example.com", wordlist=mock_wordlist, threads=5, alive=True)
         assert len(result["alive"]) == 1
         assert result["alive"][0]["subdomain"] == "www.example.com"
 

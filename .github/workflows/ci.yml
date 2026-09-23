@@ -3,10 +3,10 @@ name: CI
 on:
   push:
     branches: [main]
-    paths-ignore: ["**.md", "LICENCE", ".gitignore", "wordlists/**"]
+    paths-ignore: ["**.md", "LICENCE", ".gitignore"]
   pull_request:
     branches: [main]
-    paths-ignore: ["**.md", "LICENCE", ".gitignore", "wordlists/**"]
+    paths-ignore: ["**.md", "LICENCE", ".gitignore"]
   workflow_dispatch:
 
 concurrency:
@@ -30,9 +30,7 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: |
-            setup.py
-            requirements.txt
+          cache-dependency-path: pyproject.toml
 
       - name: Install package with dev dependencies
         run: pip install -e ".[dev]"
@@ -66,9 +64,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
-          cache-dependency-path: |
-            setup.py
-            requirements.txt
+          cache-dependency-path: pyproject.toml
 
       - name: Install package with dev dependencies
         run: pip install -e ".[dev]"
@@ -88,3 +84,49 @@ jobs:
           name: coverage-xml
           path: coverage.xml
           retention-days: 14
+
+  package:
+    name: Build & smoke-test package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Build sdist and wheel
+        run: |
+          python -m pip install build twine
+          python -m build
+
+      - name: Validate distribution metadata
+        run: twine check --strict dist/*
+
+      - name: Check wheel contents
+        shell: python
+        run: |
+          import glob
+          import zipfile
+
+          names = zipfile.ZipFile(glob.glob("dist/*.whl")[0]).namelist()
+          assert "domainspyder/wordlists/default.txt" in names, "wordlist missing from wheel"
+          stray = [n for n in names if not n.startswith("domainspyder")]
+          assert not stray, f"unexpected top-level files in wheel: {stray}"
+
+      - name: Install wheel and smoke-test outside the repo
+        working-directory: ${{ runner.temp }}
+        run: |
+          python -m venv smoke
+          smoke/bin/pip install "$GITHUB_WORKSPACE"/dist/*.whl
+          smoke/bin/domainspyder --version
+          smoke/bin/python -m domainspyder --help > /dev/null
+          smoke/bin/python -c "import os; from domainspyder.config import DEFAULT_WORDLIST as w; assert os.path.isfile(w), w"
+          status=0
+          smoke/bin/domainspyder dns "not a domain" || status=$?
+          test "$status" -eq 2

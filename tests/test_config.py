@@ -1,11 +1,16 @@
 """Tests for domainspyder.config constants."""
 
+import os
+
+import pytest
+
 from domainspyder.config import (
     APP_NAME,
     BRUTE_CONFIG,
     COOKIE_TECH_MAP,
     DEFAULT_BRUTE_MODE,
     DEFAULT_THREADS,
+    DEFAULT_WORDLIST,
     DESCRIPTION,
     DNS_SERVERS,
     DOMAIN_AGE_THRESHOLDS,
@@ -29,6 +34,19 @@ class TestVersion:
     def test_version_string(self):
         assert isinstance(VERSION, str)
         assert len(VERSION) > 0
+
+    def test_version_single_source(self):
+        from importlib.metadata import PackageNotFoundError, version
+
+        import domainspyder
+
+        assert domainspyder.__version__ == VERSION
+        assert VERSION in HEADERS["User-Agent"]
+        try:
+            installed = version("domainspyder")
+        except PackageNotFoundError:
+            pytest.skip("package metadata not installed")
+        assert installed == VERSION
 
     def test_app_name(self):
         assert isinstance(APP_NAME, str)
@@ -155,3 +173,14 @@ class TestSitemapPatterns:
         assert isinstance(SITEMAP_CMS_PATTERNS, dict)
         assert "wp-content" in SITEMAP_CMS_PATTERNS
         assert SITEMAP_CMS_PATTERNS["wp-content"] == "WordPress"
+
+
+class TestDefaultWordlist:
+    def test_bundled_wordlist_is_absolute_and_exists(self):
+        assert os.path.isabs(DEFAULT_WORDLIST)
+        assert os.path.isfile(DEFAULT_WORDLIST)
+
+    def test_bundled_wordlist_has_entries(self):
+        with open(DEFAULT_WORDLIST, encoding="utf-8") as fh:
+            words = [line.strip() for line in fh if line.strip()]
+        assert len(words) > 10

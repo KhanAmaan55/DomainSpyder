@@ -101,7 +101,7 @@ class TestBuildParser:
     def test_ports_custom_ports(self):
         parser = _build_parser()
         args = parser.parse_args(["ports", "example.com", "--ports", "80,443,8080"])
-        assert args.ports == "80,443,8080"
+        assert args.ports == [80, 443, 8080]
 
     def test_ports_fast(self):
         parser = _build_parser()
@@ -173,7 +173,7 @@ class TestCommandHandlers:
             _handle_subdomains(args)
 
         mock_scanner.scan.assert_called_once_with(
-            "example.com", "wordlists/default.txt", 50,
+            "example.com", None, 50,
             alive=False, brutemode="balanced", brute_only=False,
         )
 
@@ -351,3 +351,174 @@ class TestMain:
             with pytest.raises(SystemExit) as exc:
                 main()
             assert exc.value.code == 130
+
+
+class TestArgumentValidation:
+    @pytest.mark.parametrize("command", ["subdomains", "dns", "info"])
+    def test_domain_is_normalised(self, command):
+        args = _build_parser().parse_args([command, "https://Example.COM/path"])
+        assert args.domain == "example.com"
+
+    @pytest.mark.parametrize("command", ["subdomains", "dns", "info"])
+    @pytest.mark.parametrize("bad", ["not a domain!!", "localhost", "1.2.3.4"])
+    def test_invalid_domain_exits_2(self, command, bad, capsys):
+        with pytest.raises(SystemExit) as exc:
+            _build_parser().parse_args([command, bad])
+        assert exc.value.code == 2
+        assert "argument domain:" in capsys.readouterr().err
+
+    def test_ports_accepts_ipv4(self):
+        args = _build_parser().parse_args(["ports", "93.184.216.34"])
+        assert args.target == "93.184.216.34"
+
+    def test_tech_preserves_url(self):
+        args = _build_parser().parse_args(["tech", "https://example.com/blog"])
+        assert args.target == "https://example.com/blog"
+
+    @pytest.mark.parametrize("spec", ["abc", "99999,-1", "80,,443"])
+    def test_invalid_ports_exit_2(self, spec, capsys):
+        with pytest.raises(SystemExit) as exc:
+            _build_parser().parse_args(["ports", "example.com", "--ports", spec])
+        assert exc.value.code == 2
+        assert "invalid port" in capsys.readouterr().err
+
+    @pytest.mark.parametrize("command", ["subdomains", "ports"])
+    @pytest.mark.parametrize("threads", ["0", "-5", "many"])
+    def test_invalid_threads_exit_2(self, command, threads):
+        with pytest.raises(SystemExit) as exc:
+            _build_parser().parse_args([command, "example.com", "--threads", threads])
+        assert exc.value.code == 2
+
+    def test_missing_wordlist_exits_2(self, capsys):
+        with pytest.raises(SystemExit) as exc:
+            _build_parser().parse_args(
+                ["subdomains", "example.com", "--wordlist", "/nonexistent/words.txt"]
+            )
+        assert exc.value.code == 2
+        assert "wordlist not found" in capsys.readouterr().err
+
+    def test_existing_wordlist_accepted(self, mock_wordlist):
+        args = _build_parser().parse_args(
+            ["subdomains", "example.com", "--wordlist", mock_wordlist]
+        )
+        assert args.wordlist == mock_wordlist
+
+    def test_version_flag(self, capsys):
+        from domainspyder import __version__
+
+        with pytest.raises(SystemExit) as exc:
+            _build_parser().parse_args(["--version"])
+        assert exc.value.code == 0
+        assert capsys.readouterr().out.strip() == f"domainspyder {__version__}"
+
+
+class TestExitCodes:
+    @pytest.fixture(autouse=True)
+    def _quiet(self):
+        with (
+            patch("domainspyder.cli.print_banner"),
+            patch("domainspyder.cli.print_target"),
+            patch("domainspyder.cli.console"),
+        ):
+            yield
+
+    def test_successful_scan_returns_0(self):
+        args = _build_parser().parse_args(["dns", "example.com"])
+        with (
+            patch("domainspyder.cli.DNSScanner") as mock_cls,
+            patch("domainspyder.cli.print_dns_records"),
+            patch("domainspyder.cli.print_dns_insights"),
+            patch("domainspyder.cli.print_security_score"),
+        ):
+            mock_cls.return_value.scan.return_value = {
+                "records": {"A": ["1.2.3.4"]},
+                "analysis": [],
+                "security_score": {},
+            }
+            assert _handle_dns(args) == 0
+
+    def test_empty_result_returns_0(self):
+        args = _build_parser().parse_args(["dns", "example.com"])
+        with patch("domainspyder.cli.DNSScanner") as mock_cls:
+            mock_cls.return_value.scan.return_value = {"records": {}}
+            assert _handle_dns(args) == 0
+
+    def test_port_resolution_failure_returns_1(self):
+        args = _build_parser().parse_args(["ports", "example.com"])
+        with (
+            patch("domainspyder.cli.PortScanner") as mock_cls,
+            patch("domainspyder.cli.print_port_summary") as mock_summary,
+        ):
+            mock_cls.return_value.scan.return_value = {
+                "error": "Could not resolve target: example.com"
+            }
+            assert _handle_ports(args) == 1
+        mock_summary.assert_not_called()
+
+    def test_custom_ports_passed_through(self):
+        args = _build_parser().parse_args(["ports", "example.com", "--ports", "22,80"])
+        with patch("domainspyder.cli.PortScanner") as mock_cls:
+            mock_cls.return_value.scan.return_value = {"open_ports": []}
+            assert _handle_ports(args) == 0
+        assert mock_cls.return_value.scan.call_args.kwargs["ports"] == [22, 80]
+
+    def test_tech_error_returns_1(self):
+        args = _build_parser().parse_args(["tech", "example.com"])
+        with patch("domainspyder.cli.TechScanner") as mock_cls:
+            mock_cls.return_value.scan.return_value = {"error": "boom"}
+            assert _handle_tech(args) == 1
+
+    def test_info_error_returns_1(self):
+        args = _build_parser().parse_args(["info", "example.com"])
+        with patch("domainspyder.cli.InfoScanner") as mock_cls:
+            mock_cls.return_value.scan.return_value = {"error": "boom"}
+            assert _handle_info(args) == 1
+
+    def test_export_failure_returns_1(self, tmp_path):
+        args = _build_parser().parse_args(
+            ["dns", "example.com", "--output", str(tmp_path / "report.txt")]
+        )
+        with patch("domainspyder.cli.DNSScanner") as mock_cls:
+            mock_cls.return_value.scan.return_value = {"records": {}}
+            assert _handle_dns(args) == 1
+
+    def test_save_failure_returns_1(self, tmp_path):
+        args = _build_parser().parse_args(
+            ["subdomains", "example.com", "--save", str(tmp_path / "missing" / "out.txt")]
+        )
+        with (
+            patch("domainspyder.cli.SubdomainScanner") as mock_cls,
+            patch("domainspyder.cli.print_subdomain_table"),
+            patch("domainspyder.cli.print_total"),
+        ):
+            mock_cls.return_value.scan.return_value = {
+                "subdomains": ["www.example.com"],
+                "alive": [],
+            }
+            assert _handle_subdomains(args) == 1
+
+    def test_wildcard_note_printed(self):
+        from domainspyder import cli
+
+        args = _build_parser().parse_args(["subdomains", "example.com"])
+        with (
+            patch("domainspyder.cli.SubdomainScanner") as mock_cls,
+            patch("domainspyder.cli.print_subdomain_table"),
+            patch("domainspyder.cli.print_total"),
+        ):
+            mock_cls.return_value.scan.return_value = {
+                "subdomains": [],
+                "alive": [],
+                "wildcard_ips": ["10.0.0.1"],
+            }
+            assert _handle_subdomains(args) == 0
+        printed = " ".join(str(c.args[0]) for c in cli.console.print.call_args_list)
+        assert "Wildcard DNS detected" in printed
+        assert "10.0.0.1" in printed
+
+    def test_main_returns_handler_code(self):
+        with (
+            patch("sys.argv", ["domainspyder", "dns", "example.com"]),
+            patch("domainspyder.cli._handle_dns", return_value=1),
+        ):
+            assert main() == 1

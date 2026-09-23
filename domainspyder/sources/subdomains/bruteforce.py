@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import logging
 import random
+import string
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import dns.resolver
 
-from domainspyder.config import DNS_SERVERS, RESOLVER_POOL_SIZE
+from domainspyder.config import DNS_SERVERS, RESOLVER_POOL_SIZE, WILDCARD_PROBES
 from domainspyder.sources.subdomains.base import BaseSource
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,11 @@ class BruteForceSource(BaseSource):
 
     Unlike passive sources, this needs a ``wordlist_path``, ``threads``,
     and ``delay`` to be configured before calling ``fetch``.
+
+    Before brute-forcing, random labels are resolved to detect wildcard
+    DNS.  Any candidate whose A records all fall inside the wildcard set
+    is discarded, and the detected addresses are exposed afterwards as
+    ``wildcard_ips``.
     """
 
     def __init__(
@@ -32,6 +38,7 @@ class BruteForceSource(BaseSource):
         self._wordlist_path = wordlist_path
         self._threads = threads
         self._delay = delay
+        self.wildcard_ips: set[str] = set()
 
     @property
     def name(self) -> str:
@@ -50,6 +57,14 @@ class BruteForceSource(BaseSource):
 
         targets = [f"{word}.{domain}" for word in words]
         resolvers = self._create_resolver_pool()
+        self.wildcard_ips = self._detect_wildcard(domain, resolvers)
+        if self.wildcard_ips:
+            logger.debug(
+                "Wildcard DNS detected for *.%s -> %s",
+                domain,
+                ", ".join(sorted(self.wildcard_ips)),
+            )
+
         found: list[str] = []
 
         try:
@@ -64,9 +79,12 @@ class BruteForceSource(BaseSource):
                 }
 
                 for future in as_completed(futures):
-                    result = future.result()
-                    if result:
-                        found.append(result)
+                    ips = future.result()
+                    if not ips:
+                        continue
+                    if self.wildcard_ips and ips <= self.wildcard_ips:
+                        continue
+                    found.append(futures[future])
 
         except KeyboardInterrupt:
             logger.warning("Brute-force interrupted by user")
@@ -88,16 +106,32 @@ class BruteForceSource(BaseSource):
             resolvers.append(r)
         return resolvers
 
+    def _detect_wildcard(
+        self,
+        domain: str,
+        resolvers: list[dns.resolver.Resolver],
+    ) -> set[str]:
+        """Resolve random labels; any addresses returned are wildcard answers."""
+        wildcard_ips: set[str] = set()
+        for _ in range(WILDCARD_PROBES):
+            label = "".join(
+                random.choices(string.ascii_lowercase + string.digits, k=20)
+            )
+            ips = self._resolve(f"{label}.{domain}", random.choice(resolvers))
+            if ips:
+                wildcard_ips |= ips
+        return wildcard_ips
+
     def _resolve(
         self,
         subdomain: str,
         resolver: dns.resolver.Resolver,
-    ) -> str | None:
-        """Attempt to resolve a single subdomain; return it if successful."""
+    ) -> set[str] | None:
+        """Resolve a single subdomain; return its A records, or ``None``."""
         try:
-            resolver.resolve(subdomain, "A")
+            answer = resolver.resolve(subdomain, "A")
             time.sleep(self._delay)
-            return subdomain
+            return {rdata.to_text() for rdata in answer}
         except (
             dns.resolver.NXDOMAIN,
             dns.resolver.NoAnswer,
