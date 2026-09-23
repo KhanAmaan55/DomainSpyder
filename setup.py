@@ -24,7 +24,7 @@ setup(
             # Pinned: these gate CI, and a minor bump can widen
             # the default rule set or change the formatting style.
             "ruff>=0.16,<0.17",
-            "black>=25.11,<26.0",
+            "black>=25.11,<27.0",
             "mypy>=1.0",
         ],
     },
