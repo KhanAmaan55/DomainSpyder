@@ -209,6 +209,20 @@ class TestSslSource:
         result = source.fetch("example.com")
         assert result == {}
 
+    @pytest.mark.parametrize("verify", [True, False])
+    @patch("domainspyder.sources.info.ssl_source.socket.create_connection")
+    def test_try_connect_enforces_tls_1_2_minimum(self, mock_create_connection, verify):
+        import ssl
+
+        with patch.object(ssl.SSLContext, "wrap_socket", autospec=True) as mock_wrap:
+            mock_wrap.return_value.__enter__.return_value.getpeercert.return_value = {
+                "serialNumber": "01"
+            }
+            SslSource._try_connect("example.com", verify=verify)
+
+        context = mock_wrap.call_args.args[0]
+        assert context.minimum_version == ssl.TLSVersion.TLSv1_2
+
     def test_safe_fetch_catches_exceptions(self):
         source = SslSource()
         with patch.object(source, "fetch", side_effect=Exception("SSL error")):

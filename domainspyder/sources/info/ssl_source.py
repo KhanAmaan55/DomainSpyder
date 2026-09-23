@@ -98,6 +98,9 @@ class SslSource:
                 context.check_hostname = False
                 context.verify_mode = ssl.CERT_NONE
 
+            # Python < 3.10 still permits TLS 1.0/1.1 by default.
+            context.minimum_version = ssl.TLSVersion.TLSv1_2
+
             with (
                 socket.create_connection(
                     (domain, 443),
