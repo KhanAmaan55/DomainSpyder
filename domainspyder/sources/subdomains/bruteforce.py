@@ -24,8 +24,9 @@ class BruteForceSource(BaseSource):
     and ``delay`` to be configured before calling ``fetch``.
 
     Before brute-forcing, random labels are resolved to detect wildcard
-    DNS.  Any candidate whose A records all fall inside the wildcard set
-    is discarded, and the detected addresses are exposed afterwards as
+    DNS at each wordlist-derived suffix.  Any candidate whose A records
+    all fall inside the wildcard set for its own suffix is discarded, and
+    the union of detected addresses is exposed afterwards as
     ``wildcard_ips``.
     """
 
@@ -55,12 +56,13 @@ class BruteForceSource(BaseSource):
             self._threads,
         )
 
-        targets = [f"{word}.{domain}" for word in words]
+        targets = {f"{word}.{domain}": self._suffix(word) for word in words}
         resolvers = self._create_resolver_pool()
         found: list[str] = []
 
         try:
-            self.wildcard_ips = self._detect_wildcard(domain, resolvers, words)
+            wildcards = self._detect_wildcard(domain, resolvers, words)
+            self.wildcard_ips = set().union(*wildcards.values())
             if self.wildcard_ips:
                 logger.debug(
                     "Wildcard DNS detected for *.%s -> %s",
@@ -82,9 +84,11 @@ class BruteForceSource(BaseSource):
                     ips = future.result()
                     if not ips:
                         continue
-                    if self.wildcard_ips and ips <= self.wildcard_ips:
+                    sub = futures[future]
+                    wildcard_ips = wildcards.get(targets[sub])
+                    if wildcard_ips and ips <= wildcard_ips:
                         continue
-                    found.append(futures[future])
+                    found.append(sub)
 
         except KeyboardInterrupt:
             logger.warning("Brute-force interrupted by user")
@@ -106,28 +110,49 @@ class BruteForceSource(BaseSource):
             resolvers.append(r)
         return resolvers
 
+    @staticmethod
+    def _suffix(word: str) -> str:
+        """Return the labels after the first one (``"api.dev"`` -> ``"dev"``)."""
+        return ".".join(word.split(".")[1:])
+
     def _detect_wildcard(
         self,
         domain: str,
         resolvers: list[dns.resolver.Resolver],
         words: list[str],
-    ) -> set[str]:
-        """Resolve random labels at wordlist-derived suffixes for wildcard DNS."""
-        wildcard_ips: set[str] = set()
-        suffixes = {".".join(word.split(".")[1:]) for word in words if "." in word}
+    ) -> dict[str, set[str]]:
+        """
+        Resolve random labels at wordlist-derived suffixes for wildcard DNS.
+
+        Returns the wildcard addresses keyed by suffix (``""`` is the apex).
+        Probes run concurrently so a wordlist with many suffixes does not
+        serialise into a long chain of DNS timeouts.
+        """
+        suffixes = {self._suffix(word) for word in words}
         suffixes.add("")
-        for suffix in suffixes:
-            wildcard_domain = f"{suffix}.{domain}" if suffix else domain
-            for _ in range(WILDCARD_PROBES):
-                label = "".join(
-                    random.choices(string.ascii_lowercase + string.digits, k=20)
-                )
-                ips = self._resolve(
-                    f"{label}.{wildcard_domain}", random.choice(resolvers)
-                )
+        wildcards: dict[str, set[str]] = {}
+
+        with ThreadPoolExecutor(max_workers=self._threads) as executor:
+            futures = {}
+            for suffix in suffixes:
+                wildcard_domain = f"{suffix}.{domain}" if suffix else domain
+                for _ in range(WILDCARD_PROBES):
+                    label = "".join(
+                        random.choices(string.ascii_lowercase + string.digits, k=20)
+                    )
+                    future = executor.submit(
+                        self._resolve,
+                        f"{label}.{wildcard_domain}",
+                        random.choice(resolvers),
+                    )
+                    futures[future] = suffix
+
+            for future in as_completed(futures):
+                ips = future.result()
                 if ips:
-                    wildcard_ips |= ips
-        return wildcard_ips
+                    wildcards.setdefault(futures[future], set()).update(ips)
+
+        return wildcards
 
     def _resolve(
         self,
