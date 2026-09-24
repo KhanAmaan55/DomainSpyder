@@ -44,7 +44,6 @@ class SubdomainScanner:
 
     def __init__(self, *, debug: bool = False) -> None:
         self._debug = debug
-        self._wildcard_ips: set[str] = set()
 
     def scan(
         self,
@@ -67,10 +66,8 @@ class SubdomainScanner:
         wordlist = wordlist or DEFAULT_WORDLIST
         if not os.path.isfile(wordlist):
             raise FileNotFoundError(f"Wordlist not found: {wordlist}")
-        self._wildcard_ips = set()
-
         if brute_only:
-            brute_subs = self._run_bruteforce(
+            brute_subs, wildcard_ips = self._run_bruteforce(
                 domain,
                 wordlist,
                 threads,
@@ -78,7 +75,7 @@ class SubdomainScanner:
             )
             passive_subs: list[str] = []
         else:
-            brute_subs, passive_subs = self._run_combined(
+            brute_subs, passive_subs, wildcard_ips = self._run_combined(
                 domain,
                 wordlist,
                 threads,
@@ -106,7 +103,7 @@ class SubdomainScanner:
             "count": len(subdomains),
             "subdomains": subdomains,
             "alive": alive_results,
-            "wildcard_ips": sorted(self._wildcard_ips),
+            "wildcard_ips": sorted(wildcard_ips),
         }
 
     def _run_bruteforce(
@@ -115,7 +112,7 @@ class SubdomainScanner:
         wordlist: str,
         threads: int,
         brutemode: str,
-    ) -> list[str]:
+    ) -> tuple[list[str], set[str]]:
         """Run brute-force only, respecting the chosen mode profile."""
         config = BRUTE_CONFIG.get(brutemode, BRUTE_CONFIG[DEFAULT_BRUTE_MODE])
         delay = config["delay"]
@@ -135,15 +132,14 @@ class SubdomainScanner:
             delay=delay,
         )
         results = source.safe_fetch(domain)
-        self._wildcard_ips = source.wildcard_ips
-        return results
+        return results, source.wildcard_ips
 
     def _run_combined(
         self,
         domain: str,
         wordlist: str,
         threads: int,
-    ) -> tuple[list[str], list[str]]:
+    ) -> tuple[list[str], list[str], set[str]]:
         """Run passive sources + brute-force concurrently."""
         brute_source = BruteForceSource(
             wordlist_path=wordlist,
@@ -159,9 +155,7 @@ class SubdomainScanner:
             passive = future_passive.result()
             brute = future_brute.result()
 
-        self._wildcard_ips = brute_source.wildcard_ips
-
-        return brute, passive
+        return brute, passive, brute_source.wildcard_ips
 
     @staticmethod
     def _fetch_passive_sources(domain: str) -> list[str]:

@@ -202,3 +202,17 @@ class TestBruteForceSource:
 
         assert sorted(results) == ["mail.example.com", "www.example.com"]
         assert source.wildcard_ips == set()
+
+    def test_detects_wildcard_at_multi_label_word_suffix(self, mock_wordlist):
+        source = BruteForceSource(wordlist_path=mock_wordlist, threads=2, delay=0)
+        resolvers = [Mock()]
+        with patch.object(source, "_resolve", return_value={"10.0.0.1"}) as resolve:
+            wildcard_ips = source._detect_wildcard(
+                "example.com", resolvers, ["www", "api.dev"]
+            )
+
+        assert wildcard_ips == {"10.0.0.1"}
+        assert any(
+            call.args[0].endswith(".dev.example.com")
+            for call in resolve.call_args_list
+        )
