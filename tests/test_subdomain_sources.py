@@ -211,8 +211,36 @@ class TestBruteForceSource:
                 "example.com", resolvers, ["www", "api.dev"]
             )
 
-        assert wildcard_ips == {"10.0.0.1"}
+        assert wildcard_ips == {"": {"10.0.0.1"}, "dev": {"10.0.0.1"}}
         assert any(
             call.args[0].endswith(".dev.example.com")
             for call in resolve.call_args_list
         )
+
+    def test_wildcard_is_scoped_to_its_suffix(self, tmp_path):
+        import dns.resolver
+
+        wordlist = tmp_path / "words.txt"
+        wordlist.write_text("www\napi.dev\nweb.dev\n")
+
+        def rdata(ip):
+            record = MagicMock()
+            record.to_text.return_value = ip
+            return record
+
+        def resolve_side(subdomain, record_type):
+            # Only *.dev.example.com is a wildcard; www shares its address
+            # but lives outside that zone, so it must not be filtered.
+            if subdomain == "www.example.com":
+                return [rdata("10.0.0.1")]
+            if subdomain.endswith(".dev.example.com"):
+                return [rdata("10.0.0.1")]
+            raise dns.resolver.NXDOMAIN
+
+        source = BruteForceSource(wordlist_path=str(wordlist), threads=2, delay=0)
+        with patch("dns.resolver.Resolver") as mock_resolver_cls:
+            mock_resolver_cls.return_value.resolve.side_effect = resolve_side
+            results = source.fetch("example.com")
+
+        assert results == ["www.example.com"]
+        assert source.wildcard_ips == {"10.0.0.1"}
