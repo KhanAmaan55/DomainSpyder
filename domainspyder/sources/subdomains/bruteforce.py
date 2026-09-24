@@ -57,17 +57,17 @@ class BruteForceSource(BaseSource):
 
         targets = [f"{word}.{domain}" for word in words]
         resolvers = self._create_resolver_pool()
-        self.wildcard_ips = self._detect_wildcard(domain, resolvers)
-        if self.wildcard_ips:
-            logger.debug(
-                "Wildcard DNS detected for *.%s -> %s",
-                domain,
-                ", ".join(sorted(self.wildcard_ips)),
-            )
-
         found: list[str] = []
 
         try:
+            self.wildcard_ips = self._detect_wildcard(domain, resolvers, words)
+            if self.wildcard_ips:
+                logger.debug(
+                    "Wildcard DNS detected for *.%s -> %s",
+                    domain,
+                    ", ".join(sorted(self.wildcard_ips)),
+                )
+
             with ThreadPoolExecutor(max_workers=self._threads) as executor:
                 futures = {
                     executor.submit(
@@ -110,16 +110,23 @@ class BruteForceSource(BaseSource):
         self,
         domain: str,
         resolvers: list[dns.resolver.Resolver],
+        words: list[str],
     ) -> set[str]:
-        """Resolve random labels; any addresses returned are wildcard answers."""
+        """Resolve random labels at wordlist-derived suffixes for wildcard DNS."""
         wildcard_ips: set[str] = set()
-        for _ in range(WILDCARD_PROBES):
-            label = "".join(
-                random.choices(string.ascii_lowercase + string.digits, k=20)
-            )
-            ips = self._resolve(f"{label}.{domain}", random.choice(resolvers))
-            if ips:
-                wildcard_ips |= ips
+        suffixes = {".".join(word.split(".")[1:]) for word in words if "." in word}
+        suffixes.add("")
+        for suffix in suffixes:
+            wildcard_domain = f"{suffix}.{domain}" if suffix else domain
+            for _ in range(WILDCARD_PROBES):
+                label = "".join(
+                    random.choices(string.ascii_lowercase + string.digits, k=20)
+                )
+                ips = self._resolve(
+                    f"{label}.{wildcard_domain}", random.choice(resolvers)
+                )
+                if ips:
+                    wildcard_ips |= ips
         return wildcard_ips
 
     def _resolve(

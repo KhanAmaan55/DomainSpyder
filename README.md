@@ -7,6 +7,7 @@ It is designed to perform fast, scalable, and extensible domain analysis
 [![CodeQL](https://github.com/KhanAmaan55/DomainSpyder/actions/workflows/codeql.yml/badge.svg)](https://github.com/KhanAmaan55/DomainSpyder/actions/workflows/codeql.yml)
 [![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue.svg)](https://github.com/KhanAmaan55/DomainSpyder)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENCE)
+[![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/KhanAmaan55/DomainSpyder?utm_source=oss&utm_medium=github&utm_campaign=KhanAmaan55%2FDomainSpyder&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)](https://coderabbit.ai)
 
 ---
 

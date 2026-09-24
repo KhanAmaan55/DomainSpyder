@@ -12,7 +12,7 @@ class TestSubdomainScanner:
     def test_scan_returns_structured_result(self, mock_wordlist):
         scanner = SubdomainScanner()
         with (
-            patch.object(scanner, "_run_combined", return_value=([], ["www.example.com", "mail.example.com"])),
+            patch.object(scanner, "_run_combined", return_value=([], ["www.example.com", "mail.example.com"], set())),
         ):
             result = scanner.scan("example.com", wordlist=mock_wordlist, threads=5)
         assert result["command"] == "subdomains"
@@ -23,7 +23,7 @@ class TestSubdomainScanner:
     def test_scan_deduplicates(self, mock_wordlist):
         scanner = SubdomainScanner()
         with (
-            patch.object(scanner, "_run_combined", return_value=(["www.example.com"], ["www.example.com", "mail.example.com"])),
+            patch.object(scanner, "_run_combined", return_value=(["www.example.com"], ["www.example.com", "mail.example.com"], set())),
         ):
             result = scanner.scan("example.com", wordlist=mock_wordlist, threads=5)
         assert result["count"] == 2
@@ -32,7 +32,7 @@ class TestSubdomainScanner:
     def test_scan_filters_invalid(self, mock_wordlist):
         scanner = SubdomainScanner()
         with (
-            patch.object(scanner, "_run_combined", return_value=(["*.example.com", "@.example.com", "www.example.com"], [])),
+            patch.object(scanner, "_run_combined", return_value=(["*.example.com", "@.example.com", "www.example.com"], [], set())),
         ):
             result = scanner.scan("example.com", wordlist=mock_wordlist, threads=5)
         assert "*.example.com" not in result["subdomains"]
@@ -41,7 +41,7 @@ class TestSubdomainScanner:
     def test_scan_brute_only(self, mock_wordlist):
         scanner = SubdomainScanner()
         with (
-            patch.object(scanner, "_run_bruteforce", return_value=["www.example.com", "mail.example.com"]),
+            patch.object(scanner, "_run_bruteforce", return_value=(["www.example.com", "mail.example.com"], set())),
         ):
             result = scanner.scan(
                 "example.com", wordlist=mock_wordlist, threads=5, brute_only=True,
@@ -51,7 +51,7 @@ class TestSubdomainScanner:
     def test_scan_alive_probing(self, mock_wordlist):
         scanner = SubdomainScanner()
         with (
-            patch.object(scanner, "_run_combined", return_value=([], ["www.example.com"])),
+            patch.object(scanner, "_run_combined", return_value=([], ["www.example.com"], set())),
             patch.object(scanner, "_check_alive", return_value=[{"subdomain": "www.example.com", "status": 200, "server": "nginx", "title": "Test"}]),
         ):
             result = scanner.scan("example.com", wordlist=mock_wordlist, threads=5, alive=True)
@@ -64,7 +64,7 @@ class TestSubdomainScanner:
             patch.object(BruteForceSource, "safe_fetch", return_value=["www.example.com"]),
         ):
             result = scanner._run_bruteforce("example.com", "wordlist.txt", 50, "fast")
-        assert result == ["www.example.com"]
+        assert result == (["www.example.com"], set())
 
     def test_probe_returns_none_on_failure(self):
         scanner = SubdomainScanner()
