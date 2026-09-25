@@ -116,6 +116,7 @@ jobs:
 
           names = zipfile.ZipFile(glob.glob("dist/*.whl")[0]).namelist()
           assert "domainspyder/wordlists/default.txt" in names, "wordlist missing from wheel"
+          assert "domainspyder/assets/img/logo.png" in names, "report logo missing from wheel"
           stray = [n for n in names if not n.startswith("domainspyder")]
           assert not stray, f"unexpected top-level files in wheel: {stray}"
 

@@ -128,6 +128,19 @@ class TestHtmlExporter:
         assert "Test Registrar" in output
         assert "well-established" in output
 
+    def test_render_embeds_small_logo(self):
+        exporter = HtmlExporter(theme="light")
+        output = exporter.render({"command": "dns", "target": "example.com", "records": {}})
+        assert '<img class="brand-logo" src="data:image/png;base64,' in output
+        # The logo is inlined into every report, so keep it header-sized.
+        assert len(output) < 100_000
+
+    def test_logo_fallback_wordmark(self, monkeypatch):
+        monkeypatch.setattr(HtmlExporter, "_logo_uri", classmethod(lambda cls: None))
+        markup = HtmlExporter._logo_markup()
+        assert 'class="brand-wordmark"' in markup
+        assert '<span class="brand-wordmark-accent">Spyder</span>' in markup
+
     def test_security_score_section(self):
         exporter = HtmlExporter(theme="light")
         html = exporter._security_score({"score": 8, "risk": "Low Risk", "issues": ["No SPF"], "good": ["DMARC ok"]})
