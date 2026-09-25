@@ -1,0 +1,109 @@
+name: Release
+
+# Pushing a v* tag publishes to PyPI. "Run workflow" publishes to TestPyPI,
+# as a dry run before tagging. Both upload via trusted publishing (OIDC), so
+# no API token is stored anywhere; each index must list this workflow file
+# and the matching environment as a trusted publisher.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+# Never cancel a release that may be mid-upload.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build distribution
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          # Full history, so the tag can be checked against main below.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Build sdist and wheel
+        run: |
+          python -m pip install build twine
+          python -m build
+
+      - name: Validate distribution metadata
+        run: twine check --strict dist/*
+
+      # PyPI versions are permanent, so refuse to publish a mistake.
+      - name: Check tag matches package version
+        if: github.event_name == 'push'
+        env:
+          TAG: ${{ github.ref_name }}
+        shell: python
+        run: |
+          import glob
+          import os
+
+          wheel = os.path.basename(glob.glob("dist/*.whl")[0])
+          version = wheel.split("-")[1]
+          tag = os.environ["TAG"]
+          assert tag == f"v{version}", f"tag {tag} does not match package version {version}"
+
+      - name: Check tagged commit is on main
+        if: github.event_name == 'push'
+        run: |
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main \
+            || { echo "::error::$GITHUB_REF_NAME is not on main; tag the merged commit"; exit 1; }
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  publish-testpypi:
+    name: Publish to TestPyPI
+    if: github.event_name == 'workflow_dispatch'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/domainspyder/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  publish-pypi:
+    name: Publish to PyPI
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/project/domainspyder/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
