@@ -22,6 +22,9 @@ DomainSpyder is a **multi-command CLI framework** that helps you:
 - **Gather domain intelligence** (WHOIS, RDAP, SSL certificate, DNS SOA)
 - **Intelligence gathering** (email setup analysis, DNS provider detection, security posture)
 
+> ⚠️ **Only scan domains and hosts you own or are authorised to test.**
+> See the Disclaimer section below before running it against anything else.
+
 ---
 
 ## ✨ Features
@@ -911,9 +914,19 @@ DomainSpyder follows a **modular, layered design**:
 
 ## ⚠️ Disclaimer
 
-This tool is intended for **educational purposes and authorized security testing only**.
+DomainSpyder is intended for **authorised security testing, research and education**.
 
-Do not use DomainSpyder against systems without explicit permission.
+- **Only scan targets you own or have explicit permission to test.** Port
+  scanning and brute-force subdomain enumeration can break the law, a contract
+  or a provider's acceptable-use policy, even when nothing is exploited.
+- **Passive enumeration shares the target with third parties.** The
+  `subdomains` command sends the domain to crt.sh, AlienVault OTX,
+  HackerTarget, RapidDNS and the Wayback Machine. If your scope does not allow
+  that, use `--brute-only`, which only makes DNS lookups through public
+  resolvers such as `8.8.8.8` and `1.1.1.1`.
+- **You are responsible for how you use it.** DomainSpyder is provided "as is",
+  without warranty of any kind, under the
+  [MIT licence](https://github.com/KhanAmaan55/DomainSpyder/blob/main/LICENCE).
 
 ---
 
