@@ -157,23 +157,28 @@ class HtmlExporter:
 
     /* The logo has a transparent background, so a light chip lets the dark
        "DOMAIN" wordmark read while the purple glow keeps its color. The asset
-       is a ~5:1 banner with transparent padding, so cover-crop the content
-       band (vertically centred at ~48%) rather than letterboxing it. */
+       is pre-cropped to the box's ~5:1 ratio; cover only trims the slight
+       mismatch at the narrower mobile size. */
     .brand-logo {{
       display: block;
       width: min(232px, 52vw);
       height: 46px;
       object-fit: cover;
-      object-position: center 48%;
     }}
 
+    /* Fallback when the logo asset is missing. It sits on the white chip in
+       both themes, so it uses fixed palette colors that mirror the logo. */
     .brand-wordmark {{
       display: inline-flex;
       align-items: center;
       min-height: 48px;
-      color: var(--hero-text);
+      color: var(--palette-ink);
       font-size: 22px;
       font-weight: 800;
+    }}
+
+    .brand-wordmark-accent {{
+      color: var(--palette-purple);
     }}
 
     .theme-chip {{
@@ -847,28 +852,27 @@ class HtmlExporter:
         data_uri = cls._logo_uri()
         if data_uri:
             return f'<img class="brand-logo" src="{data_uri}" alt="DomainSpyder logo">'
-        return '<span class="brand-wordmark">DomainSpyder</span>'
+        return (
+            '<span class="brand-wordmark">Domain'
+            '<span class="brand-wordmark-accent">Spyder</span></span>'
+        )
 
     @classmethod
     def _logo_uri(cls) -> str | None:
         if cls._logo_loaded:
             return cls._logo_data_uri
 
-        asset_dir = Path(__file__).resolve().parents[1] / "assets" / "img"
-        candidates = [
-            asset_dir / "logo_no_bg_2.png",
-            asset_dir / "logo_no_bg_1.png",
-            asset_dir / "logo_2.png",
-        ]
-        for path in candidates:
-            try:
-                image = path.read_bytes()
-            except OSError:
-                continue
+        # Pre-cropped to the header band and sized at 2x the .brand-logo box,
+        # since it is inlined into every report.
+        path = Path(__file__).resolve().parents[1] / "assets" / "img" / "logo.png"
+        try:
+            image = path.read_bytes()
+        except OSError:
+            pass
+        else:
             cls._logo_data_uri = "data:image/png;base64," + base64.b64encode(
                 image
             ).decode("ascii")
-            break
 
         cls._logo_loaded = True
         return cls._logo_data_uri

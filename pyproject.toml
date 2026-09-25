@@ -76,7 +76,7 @@ version = { attr = "domainspyder._version.__version__" }
 include = ["domainspyder*"]
 
 [tool.setuptools.package-data]
-domainspyder = ["assets/img/*.png", "wordlists/*.txt"]
+domainspyder = ["assets/img/logo.png", "wordlists/*.txt"]
 
 [tool.black]
 line-length = 88
