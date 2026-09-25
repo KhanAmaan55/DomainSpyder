@@ -1,187 +1,45 @@
-# 🕷️ DomainSpyder
+<h1 align="center">
+  <img src="https://raw.githubusercontent.com/KhanAmaan55/DomainSpyder/main/assets/img/logo_readme.png" alt="🕷️ DomainSpyder" width="600">
+</h1>
 
-**DomainSpyder** is a modular **domain reconnaissance and intelligence framework** built in Python.
-It is designed to perform fast, scalable, and extensible domain analysis
+**Domain intelligence from one CLI**: subdomain enumeration, DNS analysis, port
+scanning, technology detection and WHOIS, with JSON and HTML reports.
 
-[![CI](https://github.com/KhanAmaan55/DomainSpyder/actions/workflows/ci.yml/badge.svg)](https://github.com/KhanAmaan55/DomainSpyder/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/KhanAmaan55/DomainSpyder/actions/workflows/codeql.yml/badge.svg)](https://github.com/KhanAmaan55/DomainSpyder/actions/workflows/codeql.yml)
 [![PyPI](https://img.shields.io/pypi/v/domainspyder.svg)](https://pypi.org/project/domainspyder/)
 [![Python](https://img.shields.io/pypi/pyversions/domainspyder.svg)](https://pypi.org/project/domainspyder/)
+[![CI](https://github.com/KhanAmaan55/DomainSpyder/actions/workflows/ci.yml/badge.svg)](https://github.com/KhanAmaan55/DomainSpyder/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/KhanAmaan55/DomainSpyder/actions/workflows/codeql.yml/badge.svg)](https://github.com/KhanAmaan55/DomainSpyder/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/KhanAmaan55/DomainSpyder/blob/main/LICENCE)
 [![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/KhanAmaan55/DomainSpyder?utm_source=oss&utm_medium=github&utm_campaign=KhanAmaan55%2FDomainSpyder&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)](https://coderabbit.ai)
 
----
-
-## 🚀 Overview
-
-DomainSpyder is a **multi-command CLI framework** that helps you:
-
-- **Discover assets** (subdomains via passive + active enumeration)
-- **Analyze DNS records** (comprehensive DNS data with security scoring)
-- **Scan exposed ports** (fast TCP connect scanning with service banners)
-- **Detect live services** (HTTP probing with metadata extraction)
-- **Gather domain intelligence** (WHOIS, RDAP, SSL certificate, DNS SOA)
-- **Intelligence gathering** (email setup analysis, DNS provider detection, security posture)
-
 > ⚠️ **Only scan domains and hosts you own or are authorised to test.**
-> See the Disclaimer section below before running it against anything else.
+> Read the Disclaimer section below before running it against anything else.
 
----
+## Quick start
 
-## ✨ Features
+```bash
+pipx install domainspyder
 
-### 🔍 Subdomain Enumeration
+domainspyder subdomains example.com --alive
+domainspyder dns example.com
+domainspyder info example.com --output report.html
+```
 
-- **Passive enumeration**:
-  - crt.sh (Certificate Transparency logs)
-  - AlienVault OTX (Passive DNS)
-  - HackerTarget (API)
-  - Wayback Machine (Internet Archive CDX)
-  - RapidDNS (Web scraper)
+## Commands
 
-- **Active enumeration**:
-  - DNS brute force (multithreaded)
-  - Configurable brute force modes (fast/balanced/stealth)
-  - Custom wordlist support
-  - Optional brute-only mode
+| Command      | What it does                                                                |
+| ------------ | --------------------------------------------------------------------------- |
+| `subdomains` | Passive enumeration from 5 public sources plus multithreaded DNS brute force |
+| `dns`        | A, AAAA, MX, NS, TXT and CNAME records, SPF/DMARC analysis, a 0-10 security score |
+| `ports`      | Concurrent TCP connect scan with service identification and banner grabbing |
+| `tech`       | Web technology fingerprinting with confidence scores and versions           |
+| `info`       | WHOIS, RDAP, SSL certificate and DNS SOA data merged into one view         |
 
-- **Post-processing**:
-  - Deduplication & case-insensitive filtering
-  - Subdomain validation (rejects wildcards, invalid domains)
+Every command can export a structured report with `--output` (`.json` or `.html`).
 
----
-
-### 🌐 Alive Detection
-
-- Parallel HTTP probing with timeout handling
-- HTTPS → HTTP fallback
-- Status code detection
-- Server header extraction
-- Page title extraction
-- Results filterable by "alive" status
-
----
-
-### 🔎 DNS Intelligence & Analysis
-
-- **Comprehensive DNS resolving** (6 record types in parallel):
-  - A, AAAA (IPv4/IPv6)
-  - MX (Mail servers)
-  - NS (Nameservers)
-  - TXT, CNAME
-
-- **Email security analysis**:
-  - SPF record validation (strict/-all, soft fail/~all, permissive/+all)
-  - DMARC policy detection (reject, quarantine, none)
-  - Email provider identification (Google Workspace, Microsoft 365, Zoho, Amazon SES)
-  - MX vs SPF provider mismatch warnings
-
-- **DNS infrastructure insights**:
-  - Hosting/CDN provider detection (Cloudflare, AWS Route53, Azure DNS, GoDaddy, Wix, Google Cloud)
-  - Nameserver analysis
-  - DMARC cached lookups
-
-- **Security scoring** (0-10 scale):
-  - Risk assessment (Low/Moderate/High)
-  - Itemized issue detection
-  - Best-practice recommendations
-
----
-
-### 🔐 Port Scanning & Exposure Analysis
-
-- **TCP port scanning**:
-  - Concurrent TCP connect scanning
-  - Default common-port scan (14 ports)
-  - Custom port selection support
-  - Preset scans (`--top-100`, `--top-1000`, `--full`)
-
-- **Service fingerprinting**:
-  - Basic service identification (HTTP, HTTPS, SSH, FTP, SMTP, MySQL, RDP, etc.)
-  - Safe banner grabbing for responsive services
-  - Reverse DNS lookup
-  - Hosting/provider detection
-
-- **Exposure insights**:
-  - Open vs closed port statistics
-  - High-risk service exposure warnings
-  - Database/service exposure detection
-  - Web-only exposure identification
-
----
-
-### 🔬 Technology Detection
-
-- **Multi-method pipeline**:
-  - HTTP fingerprinting (headers, cookies)
-  - Meta-tag & HTML signature parsing
-  - Script & stylesheet dependency extraction
-  - `robots.txt` admin panel probing
-  - DNS TXT hints (verification tags)
-  - Favicon hash fingerprinting
-  - `sitemap.xml` CMS cross-validation
-  - WordPress `/wp-json/` API probing
-  - Version extraction from signals
-
-- **Categorized results**:
-  - Frontend, Backend, Server, CMS, and CDN categorization
-  - Aggregated confidence scoring (`Low` to `High`)
-  - Discovery of secondary libraries (Webpack, Next.js, etc.)
-  - Version number display when precise versions are found
-
----
-
-### 📋 WHOIS & Domain Info
-
-- **Multi-source intelligence** (4 concurrent sources):
-  - WHOIS protocol (registrar, dates, status, org, DNSSEC)
-  - RDAP protocol (RFC 9083 structured JSON, cross-validation)
-  - SSL certificate (issuer, validity, SANs, chain depth)
-  - DNS SOA record (primary NS, admin, serial, zone parameters)
-
-- **Enrichment & analysis**:
-  - Domain age calculation with category labels (New/Established/Mature/Veteran)
-  - Expiry alerts (critical/warning thresholds)
-  - WHOIS privacy detection
-  - EPP status code explanations in plain English
-  - SSL certificate health monitoring
-
-- **Resilient design**:
-  - Graceful degradation when individual sources fail
-  - Priority-based merge (WHOIS > RDAP > SSL > DNS SOA)
-  - Only 1 new dependency (`python-whois`); other sources use existing libraries
-
----
-
-### ⚡ Performance Optimizations
-
-- Parallel passive + active enumeration
-- Concurrent DNS record resolution
-- ThreadPool-based concurrency with configurable thread counts
-- Concurrent TCP connect scanning for port enumeration
-- Resolver pool with DNS nameserver rotation
-- Thread-local HTTP session reuse (connection pooling)
-- Lightweight throttling for stability and rate-limit avoidance
-- DMARC result caching with thread-safe locking
-
----
-
-### 🖥️ CLI Experience
-
-- Multi-command interface (readily extensible)
-- Rich terminal tables & progress indicators
-- ASCII banner with framework info
-- Debug mode for detailed logging
-- Flexible scan tuning via command options
-- Color-coded output (semantic themes)
-
----
-
-## 📦 Installation
+## Installation
 
 Requires Python 3.9 or newer.
-
-### 📥 From PyPI
 
 ```bash
 pipx install domainspyder     # recommended: isolated, puts `domainspyder` on your PATH
@@ -189,402 +47,228 @@ pipx install domainspyder     # recommended: isolated, puts `domainspyder` on yo
 pip install domainspyder
 ```
 
-Check the install:
+Check the install, or upgrade to the latest release:
 
 ```bash
 domainspyder --version
-```
 
-Upgrade to the latest release:
-
-```bash
 pipx upgrade domainspyder
 # or
 pip install --upgrade domainspyder
 ```
 
 Release notes are in the [changelog](https://github.com/KhanAmaan55/DomainSpyder/blob/main/CHANGELOG.md).
+To install from source for development, see [CONTRIBUTING.md](https://github.com/KhanAmaan55/DomainSpyder/blob/main/CONTRIBUTING.md).
 
-### 🔧 From Source
+## Features
+
+**Subdomain enumeration**
+
+- Passive sources: crt.sh (Certificate Transparency), AlienVault OTX (passive DNS),
+  HackerTarget, RapidDNS and the Wayback Machine
+- Multithreaded DNS brute force with `fast`, `balanced` and `stealth` modes and custom wordlists
+- Wildcard DNS detection, so wildcard answers are not reported as real subdomains
+- Alive detection with status code, server header and page title (HTTPS first, HTTP fallback)
+
+**DNS intelligence**
+
+- Six record types resolved in parallel over a rotating resolver pool
+- SPF validation (`-all`, `~all`, `+all`) and DMARC policy detection
+- Email provider identification (Google Workspace, Microsoft 365, Zoho, Amazon SES)
+  and MX/SPF mismatch warnings
+- DNS/CDN provider detection (Cloudflare, AWS Route 53, Azure DNS, Google Cloud, GoDaddy, Wix)
+- A 0-10 security score with itemised issues and recommendations
+
+**Port scanning**
+
+- Concurrent TCP connect scanning of common ports, custom lists or preset ranges
+- Service identification, safe banner grabbing and reverse DNS
+- Exposure insights for remote-access, database and other high-risk services
+
+**Technology detection**
+
+- HTTP headers, cookies, meta tags, HTML signatures, scripts and stylesheets
+- Concurrent probes: `robots.txt`, DNS TXT hints, favicon hashes, `sitemap.xml`
+  and the WordPress `/wp-json/` API
+- Frontend, backend, server, CMS and CDN categories with confidence scores and versions
+- Security header analysis (HSTS, CSP, X-Frame-Options)
+
+**Domain info**
+
+- WHOIS, RDAP (RFC 9083), SSL certificate and DNS SOA queried concurrently
+- Keeps working when individual sources fail, merging results by priority
+  (WHOIS > RDAP > SSL > DNS SOA)
+- Domain age, expiry alerts, WHOIS privacy detection and plain-English EPP status codes
+
+## Usage
 
 ```bash
-git clone https://github.com/KhanAmaan55/DomainSpyder.git
-cd DomainSpyder
-
-python3 -m venv venv
-source venv/bin/activate
-
-pip install --upgrade pip     # editable installs need pip >= 21.3
-pip install -e ".[dev]"
+domainspyder <command> <target> [options]
+domainspyder <command> --help
 ```
 
-> Using `-e` (editable mode) is recommended during development.
-
----
-
-## ▶️ Usage
-
-### Targets & Exit Codes
+### Targets
 
 Targets are normalised before scanning, so `https://Example.com/path`,
 `example.com.` and `example.com:8443` all scan `example.com`.
 `subdomains`, `dns` and `info` need a domain name; `ports` also accepts an
 IPv4 address, and `tech` accepts a full URL (the path is kept).
 
-| Exit code | Meaning                                                        |
-| --------- | -------------------------------------------------------------- |
-| `0`       | Scan completed (including scans that found nothing)            |
-| `1`       | Scan failed (e.g. target did not resolve) or saving/export failed |
-| `2`       | Invalid arguments (bad domain, port list, thread count, wordlist) |
-| `130`     | Interrupted with Ctrl+C                                         |
-
-### Structured Reports
-
-Every scan command supports structured export with `--output`.
-Use `.json` for raw data or `.html` for a branded, readable report.
-HTML reports support light and dark variants:
-
-```bash
-domainspyder dns example.com --output reports/dns-light.html --html-light
-domainspyder dns example.com --output reports/dns-dark.html --html-dark
-```
-
-HTML exports use the light theme by default. Use `--html-dark` when you want
-the dark report variant.
-
----
-
-### 🟢 Subdomain Enumeration (Default - Passive + Brute Force)
+### Subdomain enumeration
 
 ```bash
 domainspyder subdomains example.com
 ```
 
-- Runs **passive enumeration** (all 5 sources) + **DNS brute force** in parallel
-- Deduplicates results
-- Optimized for speed (balanced mode internally)
+Runs all 5 passive sources and a DNS brute force in parallel, then deduplicates the results.
 
----
+| Option                   | Behaviour                                                       |
+| ------------------------ | --------------------------------------------------------------- |
+| `--alive`                | Show only live subdomains, with status code, server and title   |
+| `--brute-only`           | Skip passive sources and run only the DNS brute force           |
+| `--brutemode MODE`       | `fast`, `balanced` (default) or `stealth`; applies with `--brute-only` |
+| `--wordlist PATH`        | Use a custom wordlist instead of the bundled one                |
+| `--threads N`            | Number of threads (default: 50)                                 |
+| `--save PATH`            | Save the subdomain list to a text file                          |
 
-### ⚡ Alive Subdomain Detection (Filter by Live Services)
+```console
+$ domainspyder subdomains example.com --alive
 
-```bash
-domainspyder subdomains example.com --alive
+                                    Alive Subdomains
+╭───────┬────────────────────────────────┬──────────┬─────────────────┬────────────────╮
+│     # │ Subdomain                      │  Status  │ Server          │ Title          │
+├───────┼────────────────────────────────┼──────────┼─────────────────┼────────────────┤
+│     1 │ www.example.com                │   200    │ cloudflare      │ Example Domain │
+╰───────┴────────────────────────────────┴──────────┴─────────────────┴────────────────╯
+
+  TOTAL   1 result(s) found
 ```
 
-- Filters only **live/responsive subdomains**
-- Includes HTTP metadata (status code, server, page title)
-- Tries HTTPS first, falls back to HTTP
+#### Brute-force modes
 
-**Example Output:**
-
-```
-api.example.com          200   nginx
-dev.example.com          403   cloudflare
-admin.example.com        301   Apache/2.4.41
-```
-
----
-
-### 🚀 Brute Force Only Mode
-
-Run only DNS brute force with full control:
-
-```bash
-domainspyder subdomains example.com --brute-only
-```
-
-- Skips all passive sources
-- Runs only dictionary-based DNS brute force
-- Uses **balanced mode** by default (50 threads, 0.005s delay)
-
-> 🃏 **Wildcard DNS:** before brute-forcing, DomainSpyder resolves a few random
-> labels. If the domain answers for names that don't exist (`*.example.com`),
-> brute-force hits that resolve only to those wildcard addresses are discarded,
-> and the scan tells you a wildcard was detected.
-
----
-
-## 🧠 Brute Force Modes (with `--brute-only`)
-
-DomainSpyder provides **execution profiles** that control:
-
-- Request delay between checks
-- Thread count (concurrency level)
-- Scanning aggressiveness
-
-| Mode       | Delay  | Threads | Best For                                  |
+| Mode       | Delay  | Threads | Best for                                  |
 | ---------- | ------ | ------- | ----------------------------------------- |
 | `fast`     | 0.001s | 80      | Small wordlists, unrestricted targets     |
-| `balanced` | 0.005s | 50      | Medium wordlists, general recon (DEFAULT) |
+| `balanced` | 0.005s | 50      | Medium wordlists, general recon (default) |
 | `stealth`  | 0.01s  | 20      | Large wordlists, WAF/rate-limit avoidance |
 
-### ⚙️ Examples
-
-**Fast mode (aggressive):**
-
 ```bash
-domainspyder subdomains example.com --brute-only --brutemode fast
+domainspyder subdomains example.com --brute-only --brutemode stealth --wordlist words.txt
 ```
 
-Use for small wordlists (< 5,000 entries) on targets without rate limiting.
+Before brute-forcing, DomainSpyder resolves a few random labels. If the domain
+answers for names that don't exist (`*.example.com`), hits that resolve only to
+those wildcard addresses are discarded, and the scan reports that a wildcard was
+detected.
 
-**Balanced mode (recommended):**
-
-```bash
-domainspyder subdomains example.com --brute-only --brutemode balanced
-```
-
-Use for medium wordlists (5k – 50k entries) in general recon workflows.
-
-**Stealth mode (slow & reliable):**
-
-```bash
-domainspyder subdomains example.com --brute-only --brutemode stealth
-```
-
-Use for large wordlists (50k+ entries) or targets with WAF/rate limiting.
-
-> ⚠️ Note: `--brutemode` is only applied when using `--brute-only`. It is ignored in default mode.
-
----
-
-## ⚙️ Subdomain Enumeration: Common Options
-
-```bash
-# Custom wordlist
-domainspyder subdomains example.com --wordlist custom_words.txt
-
-# Custom thread count
-domainspyder subdomains example.com --threads 100
-
-# Save results to file
-domainspyder subdomains example.com --save results.txt
-
-# Combine options
-domainspyder subdomains example.com --alive --threads 75 --save live.txt
-```
-
----
-
-## 🔎 DNS Intelligence & Analysis
+### DNS analysis
 
 ```bash
 domainspyder dns example.com
+domainspyder dns example.com --raw-only    # records only, no analysis or score
 ```
 
-Resolves all DNS records (A, AAAA, MX, NS, TXT, CNAME) and provides:
+```console
+$ domainspyder dns example.com
 
-- **Email security analysis** (SPF, DMARC, email providers)
-- **Infrastructure insights** (DNS providers, CDN detection, nameserver analysis)
-- **Security scoring** (0-10 risk assessment)
+  ────────────────────────────────────────────────────────────
+  RAW DNS RECORDS
+  ────────────────────────────────────────────────────────────
 
-**Example Output:**
+  [A]
+    104.20.23.154
+    172.66.147.243
 
-```
-═══════════════════════════════════════════════════════════════
- DNS Records
-═══════════════════════════════════════════════════════════════
+  [AAAA]
+    2606:4700:8dd5:72db:f243:0:ef6b:ff98
 
-A Records:
-  93.184.216.34
+  [NS]
+    elliott.ns.cloudflare.com
+    hera.ns.cloudflare.com
 
-MX Records:
-  aspmx.l.google.com (priority: 10)
-  alt1.aspmx.l.google.com (priority: 20)
+  [TXT]
+    _k2n1y4vw3qtb4skdx9e7dxt97qrmmq9
+    v=spf1 -all
 
-TXT Records:
-  v=spf1 include:_spf.google.com ~all
-  google-site-verification=...
+  ────────────────────────────────────────────────────────────
+  DNS INSIGHTS
+  ────────────────────────────────────────────────────────────
 
-NS Records:
-  a.iana-servers.net
-  b.iana-servers.net
+    +  DMARC: Strict (reject)
+    +  DNS/CDN Provider: Cloudflare
+    +  SPF: Strict (-all) - strong protection
 
-CNAME Records:
-  (none)
+  ────────────────────────────────────────────────────────────
+  SECURITY SUMMARY
+  ────────────────────────────────────────────────────────────
 
-═══════════════════════════════════════════════════════════════
- DNS Insights
-═══════════════════════════════════════════════════════════════
+  Score: [██████████]  10/10  Low Risk
 
-✓ Email Setup: MX=Google Workspace | SPF=Google Workspace
-✓ SPF: Strict (-all) - strong protection
-✓ DMARC: Strict (reject)
-─ DNS Provider: IANA Servers
-
-═══════════════════════════════════════════════════════════════
- Security Score
-═══════════════════════════════════════════════════════════════
-
-Score: 9/10 [████████░] Low Risk
-
-Issues: 0
-Recommendations:
-  ✓ DMARC strict (reject)
-  ✓ SPF is strict (-all)
-  ✓ SPF record present
+  Passed:
+    +  SPF record present
+    +  SPF is strict (-all)
+    +  DMARC strict (reject)
 ```
 
----
-
-### Raw DNS Records Only
+### Port scanning
 
 ```bash
-domainspyder dns example.com --raw-only
+domainspyder ports scanme.nmap.org
 ```
 
-Shows DNS records without analysis or security scoring.
+[`scanme.nmap.org`](http://scanme.nmap.org/) is a host the Nmap project provides
+for testing scanners.
 
----
+| Option          | Behaviour                                              |
+| --------------- | ------------------------------------------------------ |
+| Default         | Scans 14 common ports                                  |
+| `--ports LIST`  | Scans a comma-separated list, e.g. `22,80,443`         |
+| `--top-100`     | Scans a preset of 20 high-value ports                  |
+| `--top-1000`    | Scans ports `1-1000`                                   |
+| `--full`        | Scans the full TCP range `1-65535`                     |
+| `--fast`        | Higher concurrency, banner grabbing disabled           |
+| `--deep`        | Banner grabbing enabled for richer service details     |
+| `--threads N`   | Number of threads (default: 50)                        |
 
-## 🔐 Port Scanning & Exposure Analysis
-
-```bash
-domainspyder ports amazon.com
-```
-
-Scans the default common ports and provides:
-
-- **Open port detection** (TCP connect scan)
-- **Service identification** (basic port-to-service mapping)
-- **Banner grabbing** (safe banner collection where applicable)
-- **Infrastructure insights** (IP resolution, reverse DNS, hosting/provider detection)
-- **Exposure analysis** (risky services, web-only exposure, broad attack surface)
-
-**Example Output:**
-
-```
-
-  TARGET   amazon.com  (ports)
-
+```console
+$ domainspyder ports scanme.nmap.org
 
   ────────────────────────────────────────────────────────────
   PORT SCAN SUMMARY
   ────────────────────────────────────────────────────────────
 
-  Target: amazon.com (98.82.161.185)
-  Provider: AWS (Amazon Web Services)
-  Reverse DNS: ec2-98-82-161-185.compute-1.amazonaws.com
+  Target: scanme.nmap.org (45.33.32.156)
+  Provider: Unknown
+  Reverse DNS: scanme.nmap.org
   Ports Scanned: 14
   Open Ports: 2
   Closed: 12
-  Duration: 1.156s
+  Duration: 1.715s
 
-
-                                   Open Ports
-╭───────┬──────────┬────────────┬──────────────┬────────────────────────────────╮
-│     # │     Port │   State    │ Service      │ Banner                         │
-├───────┼──────────┼────────────┼──────────────┼────────────────────────────────┤
-│     1 │       80 │    open    │ http         │ HTTP/1.1 301 Moved Permanently │
-│     2 │      443 │    open    │ https        │ TLS (banner skipped)           │
-╰───────┴──────────┴────────────┴──────────────┴────────────────────────────────╯
-
+                                        Open Ports
+╭───────┬──────────┬────────────┬──────────────┬─────────────────────────────────────────╮
+│     # │     Port │   State    │ Service      │ Banner                                  │
+├───────┼──────────┼────────────┼──────────────┼─────────────────────────────────────────┤
+│     1 │       22 │    open    │ ssh          │ SSH-2.0-OpenSSH_6.6.1p1                 │
+│       │          │            │              │ Ubuntu-2ubuntu2.13                      │
+│     2 │       80 │    open    │ http         │ HTTP/1.1 200 OK                         │
+╰───────┴──────────┴────────────┴──────────────┴─────────────────────────────────────────╯
 
   ────────────────────────────────────────────────────────────
   PORT INSIGHTS
   ────────────────────────────────────────────────────────────
 
-    +  Only web ports exposed (80, 443)
+    !  SSH exposed (remote access)
 ```
 
----
-
-### Port Scan Modes & Presets
-
-DomainSpyder provides **scan presets and modes** that control:
-
-- Port coverage
-- Speed vs depth
-- Banner grabbing behavior
-
-| Option       | Behavior                                              |
-| ------------ | ----------------------------------------------------- |
-| Default      | Scans 14 common ports with balanced settings          |
-| `--top-100`  | Scans a broader top-port preset                       |
-| `--top-1000` | Scans ports `1-1000`                                  |
-| `--full`     | Scans the full TCP range `1-65535`                    |
-| `--fast`     | Faster scan, higher concurrency, banner grab disabled |
-| `--deep`     | Deeper scan with banner grabbing enabled              |
-
-### ⚙️ Examples
-
-**Fast common-port scan:**
-
-```bash
-domainspyder ports example.com --fast
-```
-
-Use for quick checks where speed matters more than banner collection.
-
-**Scan the top 100 ports:**
-
-```bash
-domainspyder ports example.com --top-100
-```
-
-Use for broader exposure checks without scanning the full range.
-
-**Scan the top 1000 ports quickly:**
-
-```bash
-domainspyder ports example.com --top-1000 --fast
-```
-
-Use for expanded reconnaissance with reduced per-port overhead.
-
-**Deep scan with banner grabbing:**
-
-```bash
-domainspyder ports example.com --top-100 --deep
-```
-
-Use when you want richer service details from responsive ports.
-
----
-
-## ⚙️ Port Scanning: Common Options
-
-```bash
-# Custom ports
-domainspyder ports example.com --ports 80,443,8080
-
-# Top 100 ports
-domainspyder ports example.com --top-100
-
-# Top 1000 ports
-domainspyder ports example.com --top-1000
-
-# Full TCP range
-domainspyder ports example.com --full
-
-# Custom thread count
-domainspyder ports example.com --top-1000 --threads 100
-
-# Combine options
-domainspyder ports example.com --ports 22,80,443,3306 --deep --threads 75
-```
-
----
-
-## 🔬 Technology Detection
+### Technology detection
 
 ```bash
 domainspyder tech yahoo.com
 ```
 
-Scans the target for web technologies using a multi-method pipeline and concurrent network probes. Provides:
-
-- **Framework & CMS identification** (Frontend, Backend, Server)
-- **Metadata & Version extraction** (Confidence levels and version numbers)
-- **Other linked tools/libraries** (Analytics, Webpack, UI libraries, etc.)
-- **Security header analysis** (HSTS, CSP, X-Frame-Options)
-
-**Example Output:**
-
-```
-  TARGET   yahoo.com  (tech)
-
+```console
+$ domainspyder tech yahoo.com
 
   ────────────────────────────────────────────────────────────
   TECHNOLOGY DETECTION
@@ -598,33 +282,30 @@ Scans the target for web technologies using a multi-method pipeline and concurre
   [CMS       ] Magento   ████░░░░░░ (Low)
 
   Other Technologies:
-    + AWS ALB
-    + D3.js
     + Next.js
     + Webpack
 ```
 
----
+Low-confidence results come from weak signals and are worth confirming by hand.
 
-## 📋 WHOIS & Domain Info
+### Domain info
 
 ```bash
 domainspyder info example.com
 ```
 
-Gathers domain intelligence from **4 concurrent sources** (WHOIS, RDAP, SSL, DNS SOA) and provides:
+| Option       | Behaviour                                                   |
+| ------------ | ----------------------------------------------------------- |
+| Default      | Queries WHOIS, RDAP, SSL and DNS SOA concurrently           |
+| `--brief`    | Show only key registration fields (skip SSL, SOA, status)   |
+| `--no-ssl`   | Skip the SSL certificate check, e.g. when port 443 is blocked |
+| `--no-whois` | Skip WHOIS (use RDAP, SSL and DNS only), e.g. when WHOIS is rate-limited |
 
-- **Registration details** (registrar, creation/expiry/update dates, domain age)
-- **Name servers & EPP status codes** (with human-readable explanations)
-- **SSL certificate health** (issuer, validity, SAN list)
-- **DNS SOA record** (primary NS, admin contact, zone parameters)
-- **Domain insights** (expiry alerts, DNSSEC status, privacy detection)
+<details>
+<summary>Example output</summary>
 
-**Example Output:**
-
-```
-  TARGET   google.com  (info)
-
+```console
+$ domainspyder info google.com
 
   ────────────────────────────────────────────────────────────
   DOMAIN INFORMATION
@@ -632,16 +313,15 @@ Gathers domain intelligence from **4 concurrent sources** (WHOIS, RDAP, SSL, DNS
 
   Domain:       google.com
   Registrar:    MarkMonitor, Inc.
-  Created:      1997-09-15  (28 years, 8 months — Veteran)
-  Expires:      2028-09-14  (864 days remaining)
+  Created:      1997-09-15  (29 years — Veteran)
+  Expires:      2028-09-14  (719 days remaining)
   Updated:      2019-09-09
   Organization: Google LLC
   Country:      US
   DNSSEC:       unsigned
 
   Sources:      dns_soa, rdap, ssl, whois
-  Duration:     2.874s
-
+  Duration:     2.547s
 
   ────────────────────────────────────────────────────────────
   NAME SERVERS
@@ -652,30 +332,27 @@ Gathers domain intelligence from **4 concurrent sources** (WHOIS, RDAP, SSL, DNS
     +  ns3.google.com
     +  ns4.google.com
 
-
   ────────────────────────────────────────────────────────────
   REGISTRATION STATUS
   ────────────────────────────────────────────────────────────
 
-    ~  clientDeleteProhibited   — Domain cannot be deleted by registrar
-    ~  clientTransferProhibited — Domain cannot be transferred
-    ~  clientUpdateProhibited   — Domain cannot be modified
-    ~  serverDeleteProhibited   — Registry prevents deletion
-    ~  serverTransferProhibited — Registry prevents transfer
-    ~  serverUpdateProhibited   — Registry prevents modification
-
+    ~  clientDeleteProhibited  — Domain cannot be deleted by registrar
+    ~  clientTransferProhibited  — Domain cannot be transferred
+    ~  clientUpdateProhibited  — Domain cannot be modified
+    ~  serverDeleteProhibited  — Registry prevents deletion
+    ~  serverTransferProhibited  — Registry prevents transfer
+    ~  serverUpdateProhibited  — Registry prevents modification
 
   ────────────────────────────────────────────────────────────
   SSL CERTIFICATE
   ────────────────────────────────────────────────────────────
 
-  Issuer:       WR2  (Google Trust Services)
+  Issuer:       WE2  (Google Trust Services)
   Subject:      *.google.com
-  Valid From:   2026-04-08
-  Valid Until:  2026-07-01  (58 days remaining)
-  SANs:         *.google.com, *.appengine.google.com, *.bdn.dev, ...
-                ... and 132 more
-
+  Valid From:   2026-09-10
+  Valid Until:  2026-12-03  (69 days remaining)
+  SANs:         *.google.com, *.appengine.google.com, *.bdn.dev, *.origin-test.bdn.dev, *.cloud.google.com
+                ... and 60 more
 
   ────────────────────────────────────────────────────────────
   DNS SOA RECORD
@@ -683,275 +360,53 @@ Gathers domain intelligence from **4 concurrent sources** (WHOIS, RDAP, SSL, DNS
 
   Primary NS:   ns1.google.com
   Admin:        dns-admin@google.com
-  Serial:       909143293
+  Serial:       987384001
   Refresh:      900s (15m)
   Retry:        900s (15m)
   Expire:       1800s (30m)
   Min TTL:      60s (1m)
-
 
   ────────────────────────────────────────────────────────────
   DOMAIN INSIGHTS
   ────────────────────────────────────────────────────────────
 
     !  DNSSEC is not enabled
-    +  Domain is well-established (28 years, 8 months)
+    +  Domain is well-established (29 years)
     +  SSL certificate is valid
     +  4/4 sources responded successfully
 ```
 
----
+</details>
 
-### Info Command Options
+### Reports
 
-| Option       | Behavior                                                       |
-| ------------ | -------------------------------------------------------------- |
-| Default      | Runs all 4 sources (WHOIS, RDAP, SSL, DNS SOA) concurrently   |
-| `--brief`    | Show only key registration fields (skip SSL, SOA, status)      |
-| `--no-ssl`   | Skip SSL certificate analysis                                  |
-| `--no-whois` | Skip WHOIS lookup (use RDAP + SSL + DNS only)                  |
-
-### ⚙️ Examples
-
-**Brief overview (key fields only):**
+Every command accepts `--output`. The file extension picks the format: `.json`
+for raw data, `.html` for a self-contained, readable report. HTML reports use
+the light theme by default; add `--html-dark` for the dark theme.
 
 ```bash
-domainspyder info example.com --brief
+domainspyder dns example.com --output dns.json
+domainspyder ports scanme.nmap.org --output ports.html --html-dark
 ```
 
-Quick summary showing only registrar, dates, and domain age.
+### Debug logging
 
-**Skip SSL analysis (faster):**
-
-```bash
-domainspyder info example.com --no-ssl
-```
-
-Useful behind firewalls or when SSL connection is blocked.
-
-**Use only RDAP + SSL + DNS (skip WHOIS):**
+`--debug` goes before the command and enables detailed logging:
 
 ```bash
-domainspyder info example.com --no-whois
-```
-
-Useful when WHOIS servers are rate-limiting or unreachable.
-
----
-
-### 🐞 Debug Mode (Global)
-
-```bash
-domainspyder --debug subdomains example.com
 domainspyder --debug dns example.com
-domainspyder --debug ports example.com --top-100
-domainspyder --debug info example.com
 ```
 
-Enables detailed logging for troubleshooting and development.
+### Exit codes
 
----
+| Exit code | Meaning                                                           |
+| --------- | ----------------------------------------------------------------- |
+| `0`       | Scan completed (including scans that found nothing)               |
+| `1`       | Scan failed (e.g. target did not resolve) or saving/export failed |
+| `2`       | Invalid arguments (bad domain, port list, thread count, wordlist) |
+| `130`     | Interrupted with Ctrl+C                                           |
 
-## 📊 Example Workflow
-
-```bash
-# Discover subdomains
-domainspyder subdomains target.com
-
-# Find live subdomains with HTTP info
-domainspyder subdomains target.com --alive --save live-subdomains.txt
-
-# Run aggressive brute force on a small wordlist
-domainspyder subdomains target.com --brute-only --brutemode fast
-
-# Analyze DNS security posture
-domainspyder dns target.com
-
-# Scan exposed services
-domainspyder ports target.com --top-100
-
-# Discover applied web technologies
-domainspyder tech target.com
-
-# Gather WHOIS + domain intelligence
-domainspyder info target.com
-
-# Quick domain overview
-domainspyder info target.com --brief
-
-# Run with debug logging for troubleshooting
-domainspyder --debug dns target.com --raw-only
-```
-
----
-
-## 🏗️ Project Structure
-
-```
-domainspyder/
-├── __init__.py              # Package initialization
-├── __main__.py              # Entry point for 'python -m domainspyder'
-├── _version.py              # Single source of truth for the version
-├── cli.py                   # CLI entry point, argument parsing, command routing
-├── config.py                # Configuration & constants (DNS servers, brute modes, providers)
-├── utils.py                 # Utilities (HTTP session pooling, input normalisation, provider mapping)
-├── assets/
-│   └── img/
-│       └── logo.png         # Logo embedded in HTML reports
-├── wordlists/
-│   └── default.txt          # Bundled subdomain wordlist (~110 common names)
-│
-├── scanners/                # Core scanning logic
-│   ├── __init__.py
-│   ├── dns_scanner.py       # DNSScanner class (resolution, analysis, security scoring)
-│   ├── info_scanner.py      # InfoScanner class (multi-source domain intelligence)
-│   ├── port_scanner.py      # PortScanner class (scanning, banner grabbing, analysis)
-│   ├── subdomain_scanner.py # SubdomainScanner class (passive + active enumeration)
-│   └── tech_scanner.py      # TechScanner class (multi-method web tech detection)
-│
-├── sources/                 # Data sources for passive enumeration
-│   ├── __init__.py
-│   ├── subdomains/          # Subdomain enumeration data sources
-│   │   ├── __init__.py
-│   │   ├── base.py          # BaseSource abstract class
-│   │   ├── bruteforce.py    # DNS brute-force enumeration
-│   │   ├── crtsh.py         # Certificate Transparency (crt.sh)
-│   │   ├── hackertarget.py  # HackerTarget API
-│   │   ├── otx.py           # AlienVault OTX
-│   │   ├── rapiddns.py      # RapidDNS web scraper
-│   │   └── wayback.py       # Internet Archive CDX
-│   ├── info/                # Domain info data sources
-│   │   ├── __init__.py      # Info source registry
-│   │   ├── base_info_source.py  # BaseInfoSource abstract class
-│   │   ├── whois_source.py  # WHOIS protocol lookup
-│   │   ├── rdap_source.py   # RDAP protocol (RFC 9083 JSON)
-│   │   ├── ssl_source.py    # SSL certificate extraction (stdlib)
-│   │   └── dns_soa_source.py # DNS SOA record query
-│   └── tech/                # Tech detection modular sources & probes
-│       ├── __init__.py
-│       ├── helpers.py       # Shared scoring utilities
-│       ├── http_detectors.py # Server, Backend, CDN detection
-│       ├── html_detectors.py # Frontend, CMS detection
-│       ├── asset_analysis.py # Scripts, stylesheets, meta tags
-│       ├── security_analysis.py # Security header audit
-│       ├── cookie_detector.py # Cookie-based tech detection
-│       ├── version_extractor.py # Version number extraction
-│       ├── dns_hints_probe.py # DNS TXT hint verification
-│       ├── robots_probe.py  # robots.txt hint probe
-│       ├── favicon_probe.py # Favicon hash fingerprinting
-│       ├── sitemap_probe.py # sitemap.xml CMS cross-validation
-│       └── wp_api_probe.py  # WordPress /wp-json/ REST API probe
-│
-├── reporting/               # Structured report export (--output)
-│   ├── __init__.py
-│   ├── exporter.py          # Exporter registry, picks JSON/HTML by file extension
-│   ├── json_report.py       # JSON exporter
-│   └── html_report.py       # Standalone HTML exporter (light/dark themes)
-│
-└── display/                 # Output & formatting
-    ├── __init__.py
-    ├── banner.py            # ASCII art spider banner
-    ├── formatter.py         # Rich terminal output (tables, panels, progress)
-    └── themes.py            # Color themes & semantic styling
-
-tests/                       # Pytest suite (one test module per component)
-assets/img/                  # Logo artwork used in the repository
-.github/
-├── workflows/
-│   ├── ci.yml               # Lint, type-check and test matrix
-│   ├── codeql.yml           # CodeQL security analysis
-│   └── release.yml          # Build and publish to TestPyPI / PyPI
-├── codeql/codeql-config.yml # CodeQL configuration
-└── dependabot.yml           # Dependency update schedule
-
-pyproject.toml               # Package metadata, dependencies & tool configuration
-requirements.txt             # Dev shortcut: installs the package editable with dev extras
-CHANGELOG.md                 # Release notes
-CODEOWNERS                   # Default reviewers
-README.md                    # This file
-LICENCE                      # License information
-```
-
----
-
-## 🧠 Architecture
-
-DomainSpyder follows a **modular, layered design**:
-
-### **CLI Layer** (`cli.py`)
-
-- Argument parsing & validation
-- Command routing (subdomains, dns, ports, tech, info)
-- User interface orchestration
-
-### **Core Scanning Layer** (`scanners/`)
-
-**SubdomainScanner:**
-
-- Orchestrates passive sources + brute-force in parallel
-- Deduplicates & validates results
-- Optionally probes for live services (HTTP metadata extraction)
-
-**DNSScanner:**
-
-- Parallel DNS record resolution (6 record types)
-- Email security analysis (SPF, DMARC provider detection)
-- Infrastructure insights (nameserver, CDN, hosting provider detection)
-- Security scoring & risk assessment
-
-**PortScanner:**
-
-- Concurrent TCP connect scanning
-- Port preset selection and custom port support
-- Safe banner grabbing and service identification
-- Exposure analysis with provider and reverse-DNS enrichment
-
-**TechScanner:**
-
-- Orchestrates multi-method detection pipeline (HTTP headers/body, tags, scripts)
-- Runs concurrent network probes (`robots.txt`, DNS hints, favicons, sitemaps, `/wp-json/`)
-- Merges, scores, and categorizes results with confidence ratings
-- Extracts component versions and performs security header analysis
-
-**InfoScanner:**
-
-- Multi-source domain intelligence (WHOIS, RDAP, SSL, DNS SOA)
-- Concurrent source execution with graceful degradation
-- Priority-based result merging (WHOIS > RDAP > SSL > SOA)
-- Domain age, expiry alerts, privacy detection, EPP status explanations
-
-### **Data Sources Layer** (`sources/`)
-
-- Pluggable passive enumeration sources
-- Inherit from `BaseSource` for consistency
-- Each source implements independent HTTP/web requests
-- Domain info sources (`sources/info/`) inherit from `BaseInfoSource`
-- Tech detection sources (`sources/tech/`) split into stateless detectors and concurrent network probes
-- Info sources return dicts (not lists) for structured field merging
-
-### **Utilities Layer** (`utils.py`)
-
-- DNS & HTTP session management
-- Domain validation & filtering
-- Provider mapping & normalization
-- Shared helper functions
-
-### **Reporting Layer** (`reporting/`)
-
-- Exports scan results with `--output`
-- Chooses the exporter from the file extension (`.json` or `.html`)
-- Self-contained HTML reports with light and dark themes and an embedded logo
-
-### **Display Layer** (`display/`)
-
-- Banner rendering
-- Rich table formatting
-- Progress indicators
-- Semantic color theming
-
----
-
-## ⚠️ Disclaimer
+## Disclaimer
 
 DomainSpyder is intended for **authorised security testing, research and education**.
 
@@ -964,26 +419,15 @@ DomainSpyder is intended for **authorised security testing, research and educati
   that, use `--brute-only`, which only makes DNS lookups through public
   resolvers such as `8.8.8.8` and `1.1.1.1`.
 - **You are responsible for how you use it.** DomainSpyder is provided "as is",
-  without warranty of any kind, under the
-  [MIT licence](https://github.com/KhanAmaan55/DomainSpyder/blob/main/LICENCE).
+  without warranty of any kind.
 
----
+## Contributing
 
-## 👨‍💻 Author
+Bug reports, feature requests and pull requests are welcome. See
+[CONTRIBUTING.md](https://github.com/KhanAmaan55/DomainSpyder/blob/main/CONTRIBUTING.md)
+for development setup, checks, project structure and architecture.
 
-**Amaan Khan**
-GitHub: https://github.com/KhanAmaan55
+## License
 
----
-
-## ⭐ Contributing
-
-Contributions, issues, and feature requests are welcome.
-
-If you’d like to contribute:
-
-1. Fork the repository
-2. Create a new branch
-3. Submit a pull request
-
----
+Released under the [MIT License](https://github.com/KhanAmaan55/DomainSpyder/blob/main/LICENCE).
+Created by [Amaan Khan](https://github.com/KhanAmaan55).
