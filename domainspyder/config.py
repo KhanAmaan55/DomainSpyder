@@ -12,6 +12,7 @@ from domainspyder._version import __version__ as VERSION
 APP_NAME = "DOMAIN SPYDER"
 DESCRIPTION = "Domain Intelligence Framework"
 AUTHOR = "Amaan Khan"
+REPO_URL = "https://github.com/KhanAmaan55/DomainSpyder"
 
 # ---------------------------------------------------------------------------
 # DNS Configuration
