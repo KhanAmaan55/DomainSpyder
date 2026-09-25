@@ -795,6 +795,9 @@ domainspyder/
 ├── cli.py                   # CLI entry point, argument parsing, command routing
 ├── config.py                # Configuration & constants (DNS servers, brute modes, providers)
 ├── utils.py                 # Utilities (HTTP session pooling, input normalisation, provider mapping)
+├── assets/
+│   └── img/
+│       └── logo.png         # Logo embedded in HTML reports
 ├── wordlists/
 │   └── default.txt          # Bundled subdomain wordlist (~110 common names)
 │
@@ -807,6 +810,7 @@ domainspyder/
 │   └── tech_scanner.py      # TechScanner class (multi-method web tech detection)
 │
 ├── sources/                 # Data sources for passive enumeration
+│   ├── __init__.py
 │   ├── subdomains/          # Subdomain enumeration data sources
 │   │   ├── __init__.py
 │   │   ├── base.py          # BaseSource abstract class
@@ -838,14 +842,32 @@ domainspyder/
 │       ├── sitemap_probe.py # sitemap.xml CMS cross-validation
 │       └── wp_api_probe.py  # WordPress /wp-json/ REST API probe
 │
+├── reporting/               # Structured report export (--output)
+│   ├── __init__.py
+│   ├── exporter.py          # Exporter registry, picks JSON/HTML by file extension
+│   ├── json_report.py       # JSON exporter
+│   └── html_report.py       # Standalone HTML exporter (light/dark themes)
+│
 └── display/                 # Output & formatting
     ├── __init__.py
     ├── banner.py            # ASCII art spider banner
     ├── formatter.py         # Rich terminal output (tables, panels, progress)
     └── themes.py            # Color themes & semantic styling
 
+tests/                       # Pytest suite (one test module per component)
+assets/img/                  # Logo artwork used in the repository
+.github/
+├── workflows/
+│   ├── ci.yml               # Lint, type-check and test matrix
+│   ├── codeql.yml           # CodeQL security analysis
+│   └── release.yml          # Build and publish to TestPyPI / PyPI
+├── codeql/codeql-config.yml # CodeQL configuration
+└── dependabot.yml           # Dependency update schedule
+
 pyproject.toml               # Package metadata, dependencies & tool configuration
 requirements.txt             # Dev shortcut: installs the package editable with dev extras
+CHANGELOG.md                 # Release notes
+CODEOWNERS                   # Default reviewers
 README.md                    # This file
 LICENCE                      # License information
 ```
@@ -913,6 +935,12 @@ DomainSpyder follows a **modular, layered design**:
 - Domain validation & filtering
 - Provider mapping & normalization
 - Shared helper functions
+
+### **Reporting Layer** (`reporting/`)
+
+- Exports scan results with `--output`
+- Chooses the exporter from the file extension (`.json` or `.html`)
+- Self-contained HTML reports with light and dark themes and an embedded logo
 
 ### **Display Layer** (`display/`)
 
