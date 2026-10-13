@@ -115,10 +115,13 @@ assets/img/                  # Logo artwork (logo_readme.png is the README banne
 ├── workflows/
 │   ├── ci.yml               # Lint, type-check and test matrix
 │   ├── codeql.yml           # CodeQL security analysis
+│   ├── docker.yml           # Build, smoke-test and publish the Docker image
 │   └── release.yml          # Build and publish to TestPyPI / PyPI
 ├── codeql/codeql-config.yml # CodeQL configuration
 └── dependabot.yml           # Dependency update schedule
 
+Dockerfile                   # Container image (published to Docker Hub)
+.dockerignore                # Limits the build context to the package sources
 pyproject.toml               # Package metadata, dependencies & tool configuration
 requirements.txt             # Dev shortcut: installs the package editable with dev extras
 CHANGELOG.md                 # Release notes

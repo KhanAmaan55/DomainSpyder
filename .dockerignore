@@ -1,0 +1,9 @@
+# Only pyproject.toml, README.md, LICENCE and domainspyder/ are needed to build.
+*
+!pyproject.toml
+!README.md
+!LICENCE
+!domainspyder/
+
+**/__pycache__
+**/*.py[cod]

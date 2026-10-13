@@ -5,6 +5,27 @@ All notable changes to DomainSpyder are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Docker image**: `khanamaan/domainspyder` on Docker Hub, for `linux/amd64`
+  and `linux/arm64`, published automatically for each release tag.
+
+## [1.0.1] - 2026-09-25
+
+Documentation-only release; no code changes.
+
+### Changed
+
+- Rewrote the README, which is also the PyPI project page, with a quick start,
+  installation and upgrade steps, per-command usage and example output.
+
+### Added
+
+- `CONTRIBUTING.md` with development setup, checks, project structure and
+  architecture.
+
 ## [1.0.0] - 2026-09-25
 
 First public release on PyPI.
@@ -45,4 +66,6 @@ First public release on PyPI.
   - A global `--debug` flag.
 - Support for Python 3.9 to 3.14.
 
+[Unreleased]: https://github.com/KhanAmaan55/DomainSpyder/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/KhanAmaan55/DomainSpyder/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/KhanAmaan55/DomainSpyder/releases/tag/v1.0.0

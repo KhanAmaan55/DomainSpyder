@@ -20,3 +20,8 @@ updates:
         patterns: ["ruff", "black", "mypy", "pytest*", "responses", "coverage"]
       runtime:
         patterns: ["requests", "httpx", "dnspython", "rich", "python-whois"]
+
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: monthly

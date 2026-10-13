@@ -57,6 +57,26 @@ pipx upgrade domainspyder
 pip install --upgrade domainspyder
 ```
 
+### Docker
+
+No Python needed. Images are built for `linux/amd64` and `linux/arm64`:
+
+```bash
+docker run --rm -it khanamaan/domainspyder dns example.com
+```
+
+To save `--output` reports or use a custom `--wordlist`, mount a directory at
+`/data`, the container's working directory:
+
+```bash
+docker run --rm -it -v "$PWD:/data" khanamaan/domainspyder info example.com --output report.html
+```
+
+On Linux, add `--user "$(id -u):$(id -g)"` so the report is owned by you and
+the container can write to the mounted directory. Pin a release with a version
+tag (`khanamaan/domainspyder:1.0.1`) and update with
+`docker pull khanamaan/domainspyder`.
+
 Release notes are in the [changelog](https://github.com/KhanAmaan55/DomainSpyder/blob/main/CHANGELOG.md).
 To install from source for development, see [CONTRIBUTING.md](https://github.com/KhanAmaan55/DomainSpyder/blob/main/CONTRIBUTING.md).
 
