@@ -7,6 +7,8 @@ scanning, technology detection and WHOIS, with JSON and HTML reports.
 
 [![PyPI](https://img.shields.io/pypi/v/domainspyder.svg)](https://pypi.org/project/domainspyder/)
 [![Python](https://img.shields.io/pypi/pyversions/domainspyder.svg)](https://pypi.org/project/domainspyder/)
+[![Docker](https://img.shields.io/docker/v/khanamaan/domainspyder?sort=semver&label=Docker&logo=docker&logoColor=white)](https://hub.docker.com/r/khanamaan/domainspyder)
+[![Docker Pulls](https://img.shields.io/docker/pulls/khanamaan/domainspyder?logo=docker&logoColor=white)](https://hub.docker.com/r/khanamaan/domainspyder)
 [![CI](https://github.com/KhanAmaan55/DomainSpyder/actions/workflows/ci.yml/badge.svg)](https://github.com/KhanAmaan55/DomainSpyder/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/KhanAmaan55/DomainSpyder/actions/workflows/codeql.yml/badge.svg)](https://github.com/KhanAmaan55/DomainSpyder/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/KhanAmaan55/DomainSpyder/blob/main/LICENCE)
@@ -39,7 +41,10 @@ Every command can export a structured report with `--output` (`.json` or `.html`
 
 ## Installation
 
-Requires Python 3.9 or newer.
+### PyPI
+
+Install the [`domainspyder`](https://pypi.org/project/domainspyder/) package
+with pip or pipx, using Python 3.9 or newer:
 
 ```bash
 pipx install domainspyder     # recommended: isolated, puts `domainspyder` on your PATH
@@ -57,9 +62,24 @@ pipx upgrade domainspyder
 pip install --upgrade domainspyder
 ```
 
+### Homebrew
+
+On macOS and Linux, install from the
+[`khanamaan55/tap`](https://github.com/KhanAmaan55/homebrew-tap) tap. Homebrew
+takes care of Python for you:
+
+```bash
+brew install khanamaan55/tap/domainspyder
+```
+
+Upgrade with `brew upgrade domainspyder`. New releases reach the tap a day or
+two after they are published on PyPI.
+
 ### Docker
 
-No Python needed. Images are built for `linux/amd64` and `linux/arm64`:
+No Python needed. Run the
+[`khanamaan/domainspyder`](https://hub.docker.com/r/khanamaan/domainspyder)
+image from Docker Hub, built for `linux/amd64` and `linux/arm64`:
 
 ```bash
 docker run --rm -it khanamaan/domainspyder dns example.com

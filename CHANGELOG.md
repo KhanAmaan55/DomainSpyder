@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Docker image**: `khanamaan/domainspyder` on Docker Hub and
   `ghcr.io/khanamaan55/domainspyder` on GitHub Container Registry, for
   `linux/amd64` and `linux/arm64`, published automatically for each release tag.
+- **Homebrew**: `brew install khanamaan55/tap/domainspyder` on macOS and Linux,
+  from the [`khanamaan55/tap`](https://github.com/KhanAmaan55/homebrew-tap) tap.
 
 ## [1.0.1] - 2026-09-25
 
