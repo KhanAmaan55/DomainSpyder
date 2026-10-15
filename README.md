@@ -77,6 +77,12 @@ the container can write to the mounted directory. Pin a release with a version
 tag (`khanamaan/domainspyder:1.0.1`) and update with
 `docker pull khanamaan/domainspyder`.
 
+The same image is also published to GitHub Container Registry, with the same tags:
+
+```bash
+docker run --rm -it ghcr.io/khanamaan55/domainspyder dns example.com
+```
+
 Release notes are in the [changelog](https://github.com/KhanAmaan55/DomainSpyder/blob/main/CHANGELOG.md).
 To install from source for development, see [CONTRIBUTING.md](https://github.com/KhanAmaan55/DomainSpyder/blob/main/CONTRIBUTING.md).
 

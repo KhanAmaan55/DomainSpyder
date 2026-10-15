@@ -120,7 +120,7 @@ assets/img/                  # Logo artwork (logo_readme.png is the README banne
 ├── codeql/codeql-config.yml # CodeQL configuration
 └── dependabot.yml           # Dependency update schedule
 
-Dockerfile                   # Container image (published to Docker Hub)
+Dockerfile                   # Container image (published to Docker Hub and GHCR)
 .dockerignore                # Limits the build context to the package sources
 pyproject.toml               # Package metadata, dependencies & tool configuration
 requirements.txt             # Dev shortcut: installs the package editable with dev extras
