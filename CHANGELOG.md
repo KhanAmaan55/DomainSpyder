@@ -7,27 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-16
+
+Adds Docker and Homebrew as installation methods, and fixes two CLI bugs.
+
 ### Added
 
-- **Docker image**: `khanamaan/domainspyder` on Docker Hub and
-  `ghcr.io/khanamaan55/domainspyder` on GitHub Container Registry, for
-  `linux/amd64` and `linux/arm64`, published automatically for each release tag.
-- **Homebrew**: `brew install khanamaan55/tap/domainspyder` on macOS and Linux,
-  from the [`khanamaan55/tap`](https://github.com/KhanAmaan55/homebrew-tap) tap.
+- **Docker image**, published to Docker Hub as `khanamaan/domainspyder` and to
+  GitHub Container Registry as `ghcr.io/khanamaan55/domainspyder`.
+  - Built for `linux/amd64` and `linux/arm64`.
+  - Runs as an unprivileged user, with `/data` as the working directory for
+    mounted reports and wordlists.
+  - Tagged `X.Y.Z`, `X.Y`, `X` and `latest`, and published automatically for
+    every release, with provenance and SBOM attestations.
+- **Homebrew formula** for macOS and Linux, installed with
+  `brew install khanamaan55/tap/domainspyder` from the
+  [`khanamaan55/tap`](https://github.com/KhanAmaan55/homebrew-tap) tap, with
+  no separate Python install required.
+
+### Fixed
+
+- **`dns`**: a null MX record (RFC 7505), which marks a domain that accepts no
+  mail, was shown as an empty value in the terminal and in reports. It is now
+  shown as `.`, with a "Null MX" insight explaining it.
+- **`--output`**: an unsupported report format, such as `report.pdf`, is now
+  rejected before the scan starts, with exit code `2`. Previously the scan ran
+  to completion and only the export failed.
 
 ## [1.0.1] - 2026-09-25
 
 Documentation-only release; no code changes.
 
-### Changed
-
-- Rewrote the README, which is also the PyPI project page, with a quick start,
-  installation and upgrade steps, per-command usage and example output.
-
 ### Added
 
 - `CONTRIBUTING.md` with development setup, checks, project structure and
   architecture.
+
+### Changed
+
+- Rewrote the README, which is also the PyPI project page, with a quick start,
+  installation and upgrade steps, per-command usage and example output.
 
 ## [1.0.0] - 2026-09-25
 
@@ -69,6 +88,7 @@ First public release on PyPI.
   - A global `--debug` flag.
 - Support for Python 3.9 to 3.14.
 
-[Unreleased]: https://github.com/KhanAmaan55/DomainSpyder/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/KhanAmaan55/DomainSpyder/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/KhanAmaan55/DomainSpyder/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/KhanAmaan55/DomainSpyder/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/KhanAmaan55/DomainSpyder/releases/tag/v1.0.0

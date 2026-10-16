@@ -17,15 +17,48 @@ scanning, technology detection and WHOIS, with JSON and HTML reports.
 > ⚠️ **Only scan domains and hosts you own or are authorised to test.**
 > Read the Disclaimer section below before running it against anything else.
 
+## Why DomainSpyder
+
+Recon on a domain usually means a handful of tools, each with its own install,
+flags and output format. DomainSpyder covers the common first pass in one
+install:
+
+- **One tool, five tasks**: subdomains, DNS, ports, technologies and
+  registration data, with the same CLI conventions throughout.
+- **Findings, not just raw data**: DNS gets a security score, open ports come
+  with exposure warnings, and registration data comes with expiry and age alerts.
+- **Reports you can share**: export any scan to JSON for scripting or to a
+  self-contained HTML report for a client or a ticket.
+- **No API keys**: every passive source is free and needs no account.
+
+It isn't meant to replace dedicated tools like Nmap or Amass when you need
+their depth. It's for getting a clear overview fast.
+
 ## Quick start
 
-```bash
-pipx install domainspyder
+Install with pipx or Homebrew:
 
+```bash
+pipx install domainspyder                     # any OS, Python 3.9 or newer
+# or
+brew install khanamaan55/tap/domainspyder     # macOS and Linux
+```
+
+Then run a scan:
+
+```bash
 domainspyder subdomains example.com --alive
 domainspyder dns example.com
 domainspyder info example.com --output report.html
 ```
+
+Or skip the install and run it with Docker:
+
+```bash
+docker run --rm -it khanamaan/domainspyder dns example.com
+```
+
+See [Installation](https://github.com/KhanAmaan55/DomainSpyder#installation) for pip, upgrades and saving reports from Docker.
 
 ## Commands
 
@@ -94,7 +127,7 @@ docker run --rm -it -v "$PWD:/data" khanamaan/domainspyder info example.com --ou
 
 On Linux, add `--user "$(id -u):$(id -g)"` so the report is owned by you and
 the container can write to the mounted directory. Pin a release with a version
-tag (`khanamaan/domainspyder:1.0.1`) and update with
+tag (`khanamaan/domainspyder:1.0.2`) and update with
 `docker pull khanamaan/domainspyder`.
 
 The same image is also published to GitHub Container Registry, with the same tags:
@@ -228,6 +261,9 @@ $ domainspyder dns example.com
   [AAAA]
     2606:4700:8dd5:72db:f243:0:ef6b:ff98
 
+  [MX]
+    .
+
   [NS]
     elliott.ns.cloudflare.com
     hera.ns.cloudflare.com
@@ -242,6 +278,7 @@ $ domainspyder dns example.com
 
     +  DMARC: Strict (reject)
     +  DNS/CDN Provider: Cloudflare
+    +  Email: Null MX - domain does not accept mail
     +  SPF: Strict (-all) - strong protection
 
   ────────────────────────────────────────────────────────────
@@ -449,7 +486,7 @@ domainspyder --debug dns example.com
 | --------- | ----------------------------------------------------------------- |
 | `0`       | Scan completed (including scans that found nothing)               |
 | `1`       | Scan failed (e.g. target did not resolve) or saving/export failed |
-| `2`       | Invalid arguments (bad domain, port list, thread count, wordlist) |
+| `2`       | Invalid arguments (bad domain, port list, thread count, wordlist or report format) |
 | `130`     | Interrupted with Ctrl+C                                           |
 
 ## Disclaimer

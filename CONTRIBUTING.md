@@ -217,3 +217,11 @@ through PyPI trusted publishing, so no API token is stored anywhere.
    publish to TestPyPI.
 4. Merge to `main`, then tag and push: `git tag vX.Y.Z && git push origin vX.Y.Z`.
    The workflow checks the tag matches the package version and publishes to PyPI.
+   The same tag triggers [`.github/workflows/docker.yml`](.github/workflows/docker.yml),
+   which pushes the image to Docker Hub and GHCR.
+5. Homebrew: the [tap](https://github.com/KhanAmaan55/homebrew-tap)'s daily
+   autobump workflow opens a `domainspyder X.Y.Z` pull request about a day after
+   the PyPI release. Once its checks are green, run **Actions → brew pr-pull**
+   in the tap with the PR number to publish the bottles. Don't use the Merge button.
+6. If [`.github/DOCKERHUB.md`](.github/DOCKERHUB.md) changed, paste it into the
+   Docker Hub repository description, which is not updated automatically.
