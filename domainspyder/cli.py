@@ -49,7 +49,7 @@ from domainspyder.display.formatter import (
     print_tech_summary,
     print_total,
 )
-from domainspyder.reporting import ExportError, save_report
+from domainspyder.reporting import EXPORTERS, ExportError, save_report
 from domainspyder.scanners.dns_scanner import DNSScanner
 from domainspyder.scanners.info_scanner import InfoScanner
 from domainspyder.scanners.port_scanner import PortScanner
@@ -100,12 +100,24 @@ def _existing_file(value: str) -> str:
     return value
 
 
+def _report_path(value: str) -> str:
+    suffix = os.path.splitext(value)[1].lower()
+    if suffix not in EXPORTERS:
+        supported = ", ".join(sorted(EXPORTERS))
+        raise ValueError(
+            f"unsupported report format '{suffix or '<none>'}' "
+            f"(expected {supported})"
+        )
+    return value
+
+
 _domain_arg = _arg_type(normalize_domain, "domain")
 _host_arg = _arg_type(normalize_host, "host")
 _url_target_arg = _arg_type(normalize_url_target, "target")
 _ports_arg = _arg_type(parse_ports, "port list")
 _threads_arg = _arg_type(_positive_int, "thread count")
 _wordlist_arg = _arg_type(_existing_file, "wordlist")
+_report_arg = _arg_type(_report_path, "report path")
 
 
 # ------------------------------------------------------------------
@@ -136,6 +148,7 @@ def _build_parser() -> argparse.ArgumentParser:
         """Add the shared structured report output option."""
         command_parser.add_argument(
             "--output",
+            type=_report_arg,
             help="Write a structured report to a file (.json, .html)",
         )
         html_theme = command_parser.add_mutually_exclusive_group()

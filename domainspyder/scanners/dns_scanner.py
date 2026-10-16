@@ -151,6 +151,9 @@ class DNSScanner:
                 if key in ns_lower:
                     insights.add(label)
 
+        if "." in mx_records:
+            insights.add("Email: Null MX - domain does not accept mail")
+
         if any("smtp.google.com" in mx for mx in mx_records):
             insights.add("[INFO] MX may be simplified due to DNS resolver behaviour")
 
@@ -311,7 +314,8 @@ class DNSScanner:
         try:
             for rdata in answers:
                 if record_type == "MX":
-                    exchange = str(rdata.exchange).rstrip(".")
+                    # A null MX (RFC 7505) points at the root: keep it as "."
+                    exchange = str(rdata.exchange).rstrip(".") or "."
                     results.append((rdata.preference, exchange))
                 elif record_type == "TXT":
                     results.append("".join(part.decode() for part in rdata.strings))

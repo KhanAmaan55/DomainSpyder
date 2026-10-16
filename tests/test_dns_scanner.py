@@ -64,6 +64,19 @@ class TestDNSScanner:
         assert "NS" in records
         assert "TXT" in records
 
+    @patch("dns.resolver.Resolver")
+    def test_null_mx_kept_as_root(self, mock_resolver_class):
+        mock_resolver_class.return_value.resolve.return_value = self.make_resolver_mock(
+            "MX", ["."]
+        )
+        assert DNSScanner()._resolve_record("example.com", "MX") == ["."]
+
+    def test_analyze_null_mx(self):
+        scanner = DNSScanner()
+        scanner._dmarc_cache["example.com"] = ([], True)
+        insights = scanner.analyze({"MX": ["."], "TXT": ["v=spf1 -all"]}, "example.com")
+        assert "Email: Null MX - domain does not accept mail" in insights
+
     def test_analyze_spf_strict(self):
         records = {
             "A": ["93.184.216.34"],

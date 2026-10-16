@@ -397,6 +397,17 @@ class TestArgumentValidation:
         assert exc.value.code == 2
         assert "wordlist not found" in capsys.readouterr().err
 
+    @pytest.mark.parametrize("path", ["report.pdf", "report", "report.json.bak"])
+    def test_unsupported_report_format_exits_2(self, path, capsys):
+        with pytest.raises(SystemExit) as exc:
+            _build_parser().parse_args(["dns", "example.com", "--output", path])
+        assert exc.value.code == 2
+        assert "unsupported report format" in capsys.readouterr().err
+
+    def test_report_format_is_case_insensitive(self):
+        args = _build_parser().parse_args(["dns", "example.com", "--output", "R.HTML"])
+        assert args.output == "R.HTML"
+
     def test_existing_wordlist_accepted(self, mock_wordlist):
         args = _build_parser().parse_args(
             ["subdomains", "example.com", "--wordlist", mock_wordlist]
@@ -475,8 +486,10 @@ class TestExitCodes:
             assert _handle_info(args) == 1
 
     def test_export_failure_returns_1(self, tmp_path):
+        # The parent "directory" is a file, so the report cannot be written.
+        (tmp_path / "not-a-dir").write_text("")
         args = _build_parser().parse_args(
-            ["dns", "example.com", "--output", str(tmp_path / "report.txt")]
+            ["dns", "example.com", "--output", str(tmp_path / "not-a-dir" / "report.json")]
         )
         with patch("domainspyder.cli.DNSScanner") as mock_cls:
             mock_cls.return_value.scan.return_value = {"records": {}}
